@@ -66,6 +66,17 @@ class SetupManager extends Component
         $this->loadSetups();
     }
 
+    public function duplicate($id)
+    {
+        $setup = Setup::findOrFail($id);
+        $newSetup = $setup->replicate();
+        $newSetup->type .= ' (Copie)';
+        $newSetup->save();
+
+        $this->loadSetups();
+        session()->flash('message', 'Base technique dupliquée avec succès.');
+    }
+
     public function resetFields()
     {
         $this->reset(['type', 'fixed_price', 'fixed_hours', 'project_type_id', 'editingSetupId']);

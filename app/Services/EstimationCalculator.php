@@ -35,9 +35,14 @@ class EstimationCalculator
         $blockInstances = [];
 
         foreach ($estimation->pages as $page) {
+            $pageQty = (int) ($page->quantity ?? 1);
             foreach ($page->blocks as $block) {
                 $uniqueBlockIds[] = $block->id;
-                $blockInstances[] = $block;
+
+                // On clone l'instance pour pouvoir y attacher la quantité de la page sans modifier le modèle original
+                $instance = clone $block;
+                $instance->page_quantity = $pageQty;
+                $blockInstances[] = $instance;
             }
         }
 
@@ -56,12 +61,15 @@ class EstimationCalculator
         // 3. Calculate Field Creation + Content Management for each instance
         foreach ($blockInstances as $instance) {
             $qty = (int) $instance->pivot->quantity;
+            $pageQty = (int) $instance->page_quantity;
 
             $field_creation = $instance->price_field_creation;
             $content_management = $instance->price_content_management;
 
+            // On multiplie par la quantité de blocs sur la page.
+            // Seule la gestion de contenu est multipliée par le nombre de pages similaires.
             $totals['field_creation'] += (float) $field_creation * $qty;
-            $totals['content_management'] += (float) $content_management * $qty;
+            $totals['content_management'] += (float) $content_management * $qty * $pageQty;
         }
 
         // 4. Translation

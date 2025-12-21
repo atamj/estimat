@@ -94,6 +94,17 @@ class BlockManager extends Component
         $this->loadBlocks();
     }
 
+    public function duplicate($id)
+    {
+        $block = Block::findOrFail($id);
+        $newBlock = $block->replicate();
+        $newBlock->name .= ' (Copie)';
+        $newBlock->save();
+
+        $this->loadBlocks();
+        session()->flash('message', 'Bloc dupliqué avec succès.');
+    }
+
     public function resetFields()
     {
         $this->reset(['name', 'description', 'type_unit', 'price_programming', 'price_integration', 'price_field_creation', 'price_content_management', 'editingBlockId', 'project_type_id']);

@@ -65,7 +65,12 @@
 
     <div class="section-title">Détail par Page</div>
     @foreach($estimation->pages as $page)
-        <h4 style="margin-bottom: 5px;">{{ $page->name }}</h4>
+        <h4 style="margin-bottom: 5px;">
+            {{ $page->name }}
+            @if($page->quantity > 1)
+                <small style="font-weight: normal; color: #666;">(x{{ $page->quantity }} pages similaires)</small>
+            @endif
+        </h4>
         <table>
             <thead>
                 <tr>
@@ -81,13 +86,18 @@
                     @php
                         $champs = $block->price_field_creation;
                         $contenu = $block->price_content_management;
-                        $subtotal = ($champs + $contenu) * $block->pivot->quantity;
+                        $blockQty = $block->pivot->quantity;
+                        $pageQty = $page->quantity ?? 1;
+
+                        // Les champs sont créés une seule fois par instance sur la page (pour le gabarit)
+                        // Le contenu est multiplié par le nombre de pages similaires
+                        $subtotal = ($champs * $blockQty) + ($contenu * $blockQty * $pageQty);
                     @endphp
                     <tr>
                         <td>{{ $block->name }}</td>
-                        <td>{{ $block->pivot->quantity }}</td>
-                        <td style="text-align: right;">{{ number_format($champs, 2) }}</td>
-                        <td style="text-align: right;">{{ number_format($contenu, 2) }}</td>
+                        <td>{{ $blockQty }}</td>
+                        <td style="text-align: right;">{{ number_format($champs * $blockQty, 2) }}</td>
+                        <td style="text-align: right;">{{ number_format($contenu * $blockQty * $pageQty, 2) }}</td>
                         <td style="text-align: right;">{{ number_format($subtotal, 2) }}</td>
                     </tr>
                 @endforeach

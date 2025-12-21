@@ -84,6 +84,35 @@ class EstimationController extends Controller
         return redirect()->route('estimations.index')->with('message', 'Estimation supprimée avec succès.');
     }
 
+    public function duplicate(Estimation $estimation)
+    {
+        $newEstimation = $estimation->replicate();
+        $newEstimation->client_name .= ' (Copie)';
+        $newEstimation->save();
+
+        // Dupliquer les pages et leurs blocs
+        foreach ($estimation->pages as $page) {
+            $newPage = $page->replicate();
+            $newPage->estimation_id = $newEstimation->id;
+            $newPage->save();
+
+            foreach ($page->blocks as $block) {
+                $newPage->blocks()->attach($block->id, [
+                    'quantity' => $block->pivot->quantity,
+                    'order' => $block->pivot->order,
+                    // Note: on ignore les overrides car ils sont dépréciés selon les instructions précédentes
+                ]);
+            }
+        }
+
+        // Dupliquer les add-ons
+        foreach ($estimation->addons as $addon) {
+            $newEstimation->addons()->attach($addon->id);
+        }
+
+        return redirect()->route('estimations.index')->with('message', 'Estimation dupliquée avec succès.');
+    }
+
     public function exportPdf(Estimation $estimation)
     {
         $calculator = new EstimationCalculator();

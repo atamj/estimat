@@ -126,7 +126,7 @@
                                     @if($type == 'fixed')
                                     <div class="bg-white p-3 rounded-lg border-2 border-blue-500 shadow-sm">
                                         <label class="block text-[10px] uppercase tracking-wider font-black text-blue-700">Prix Forfaitaire</label>
-                                        @if($currentSetup->fixed_price > 0)
+                                        @if($currentSetup->fixed_price > 0 && !$isSetupEditing)
                                             <div class="text-lg font-black text-blue-900">{{ number_format($currentSetup->fixed_price, 2) }} €</div>
                                             <span class="text-[9px] text-blue-500 font-bold uppercase">Tarif standard (verrouillé)</span>
                                         @else
@@ -137,7 +137,11 @@
                                                        class="block w-full border-2 border-blue-300 rounded-md shadow-sm text-sm p-2 pl-7 focus:border-blue-500 bg-white">
                                                 <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-blue-400 font-bold">€</div>
                                             </div>
-                                            <span class="text-[9px] text-orange-500 font-bold uppercase">Non défini - Saisissez une valeur</span>
+                                            @if($currentSetup->fixed_price > 0)
+                                                <span class="text-[9px] text-blue-500 font-bold uppercase">Modification temporaire autorisée</span>
+                                            @else
+                                                <span class="text-[9px] text-orange-500 font-bold uppercase">Non défini - Saisissez une valeur</span>
+                                            @endif
                                         @endif
                                     </div>
                                     @endif
@@ -145,7 +149,7 @@
                                     @if($type == 'hour')
                                     <div class="bg-white p-3 rounded-lg border-2 border-blue-500 shadow-sm">
                                         <label class="block text-[10px] uppercase tracking-wider font-black text-blue-700">Nombre d'heures</label>
-                                        @if($currentSetup->fixed_hours > 0)
+                                        @if($currentSetup->fixed_hours > 0 && !$isSetupEditing)
                                             <div class="text-lg font-black text-blue-900">{{ number_format($currentSetup->fixed_hours, 2) }} h</div>
                                             <span class="text-[9px] text-blue-500 font-bold uppercase">Temps standard (verrouillé)</span>
                                         @else
@@ -156,7 +160,11 @@
                                                        class="block w-full border-2 border-blue-300 rounded-md shadow-sm text-sm p-2 pr-7 focus:border-blue-500 bg-white">
                                                 <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-blue-400 font-bold">h</div>
                                             </div>
-                                            <span class="text-[9px] text-orange-500 font-bold uppercase">Non défini - Saisissez une valeur</span>
+                                            @if($currentSetup->fixed_hours > 0)
+                                                <span class="text-[9px] text-blue-500 font-bold uppercase">Modification temporaire autorisée</span>
+                                            @else
+                                                <span class="text-[9px] text-orange-500 font-bold uppercase">Non défini - Saisissez une valeur</span>
+                                            @endif
                                         @endif
                                     </div>
                                     @endif
@@ -221,11 +229,31 @@
             @foreach($estimation->pages as $page)
                 <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
                     <div class="flex justify-between items-center mb-4">
-                        <input type="text" value="{{ $page->name }}"
-                               wire:change="$refresh"
-                               onchange="@this.updatePageName({{ $page->id }}, this.value)"
-                               class="text-lg font-bold border-none focus:ring-0 p-0 w-1/2">
-                        <button wire:click="deletePage({{ $page->id }})" class="text-red-500 hover:text-red-700 text-sm flex items-center">
+                        <div class="flex flex-col w-1/2">
+                            <input type="text" value="{{ $page->name }}"
+                                   wire:change="$refresh"
+                                   onchange="@this.updatePageName({{ $page->id }}, this.value)"
+                                   class="text-lg font-bold border-none focus:ring-0 p-0">
+
+                            <div class="mt-2 flex items-center space-x-3" x-data="{ showExpl: false }">
+                                <div class="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                    <label class="text-[10px] uppercase tracking-wider font-black text-blue-700">Nb de pages similaires</label>
+                                    <input type="number"
+                                           value="{{ $page->quantity ?? 1 }}"
+                                           onchange="@this.updatePageQuantity({{ $page->id }}, this.value)"
+                                           class="w-14 p-1 border-2 border-blue-200 rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-center font-bold">
+                                </div>
+                                <button type="button" @click="showExpl = !showExpl" class="text-blue-500 hover:text-blue-700 transition-colors">
+                                    <x-fas-info-circle class="w-4 h-4" />
+                                </button>
+                                <div x-show="showExpl" @click.away="showExpl = false" class="absolute z-10 bg-white border border-blue-200 p-3 rounded-lg shadow-xl text-xs text-gray-600 max-w-xs mt-20" x-cloak>
+                                    <p class="font-bold text-blue-700 mb-1">Pourquoi plusieurs pages ?</p>
+                                    Utilisez ceci si vous avez plusieurs pages basées sur le même gabarit (ex: 10 articles de blog).
+                                    Le coût de création de gabarit et de champs ne sera compté qu'une fois, mais le temps de gestion de contenu sera multiplié par ce nombre.
+                                </div>
+                            </div>
+                        </div>
+                        <button wire:click="deletePage({{ $page->id }})" class="text-red-500 hover:text-red-700 text-sm flex items-center self-start">
                             <x-fas-trash-alt class="w-4 h-4 mr-1" />
                             Supprimer la page
                         </button>
@@ -525,4 +553,54 @@
             </div>
         </div>
     @endif
+
+    <!-- Modal Nouvelle Base Technique -->
+    <div x-data="{ open: @js($showSetupModal) }" x-show="open" x-on:setup-created.window="open = false" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+                <form wire:submit.prevent="createSetup">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg font-bold text-blue-800 border-b pb-2 mb-4">✨ Ajouter une nouvelle base technique</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Nom / Type de base</label>
+                                <input type="text" wire:model="newSetup.type" class="mt-1 block w-full border-2 border-gray-300 rounded-md shadow-sm p-2" placeholder="ex: Refonte complète, Maintenance...">
+                                @error('newSetup.type') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700">Prix Forfaitaire (€)</label>
+                                    <input type="number" step="0.01" wire:model="newSetup.fixed_price" class="mt-1 block w-full border-2 border-gray-300 rounded-md shadow-sm p-2">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700">Nombre d'heures (h)</label>
+                                    <input type="number" step="0.01" wire:model="newSetup.fixed_hours" class="mt-1 block w-full border-2 border-gray-300 rounded-md shadow-sm p-2">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Technologie</label>
+                                <select wire:model="newSetup.project_type_id" class="mt-1 block w-full border-2 border-gray-300 rounded-md shadow-sm p-2">
+                                    <option value="">Générique</option>
+                                    @foreach($projectTypes as $pt)
+                                        <option value="{{ $pt->id }}">{{ $pt->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-bold text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
+                            Enregistrer
+                        </button>
+                        <button type="button" wire:click="$set('showSetupModal', false)" @click="open = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-bold text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

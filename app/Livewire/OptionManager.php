@@ -73,6 +73,17 @@ class OptionManager extends Component
         $this->loadOptions();
     }
 
+    public function duplicate($id)
+    {
+        $option = Option::findOrFail($id);
+        $newOption = $option->replicate();
+        $newOption->name .= ' (Copy)';
+        $newOption->save();
+
+        $this->loadOptions();
+        session()->flash('message', 'Option duplicated successfully.');
+    }
+
     public function render()
     {
         return view('livewire.option-manager', [

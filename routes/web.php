@@ -11,6 +11,7 @@ Route::get('/', function () {
 Route::resource('blocks', BlockController::class);
 Route::get('estimations/create/step2', [EstimationController::class, 'createStep2'])->name('estimations.create.step2');
 Route::resource('estimations', EstimationController::class);
+Route::post('estimations/{estimation}/duplicate', [EstimationController::class, 'duplicate'])->name('estimations.duplicate');
 Route::get('estimations/{estimation}/builder', [EstimationController::class, 'builder'])->name('estimations.builder');
 Route::get('estimations/{estimation}/pdf', [EstimationController::class, 'exportPdf'])->name('estimations.pdf');
 

@@ -293,6 +293,13 @@ class EstimationBuilder extends Component
         $this->estimation->refresh();
     }
 
+    public function updatePageQuantity($pageId, $quantity)
+    {
+        Page::find($pageId)->update(['quantity' => $quantity]);
+        $this->estimation->refresh();
+        $this->calculate();
+    }
+
     public function toggleAddon($addonId)
     {
         if ($this->estimation->addons()->where('option_id', $addonId)->exists()) {

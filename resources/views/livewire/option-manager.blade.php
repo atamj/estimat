@@ -63,6 +63,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type Projet</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type / Valeur</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -74,6 +75,18 @@
                         <td class="px-6 py-4">
                             <div class="font-medium">{{ $option->name }}</div>
                             <div class="text-xs text-gray-500">{{ $option->description }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if($option->projectType)
+                                <span class="px-2 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded flex items-center w-fit">
+                                    @if($option->projectType->icon)
+                                        <x-dynamic-component :component="$option->projectType->icon" class="w-3 h-3 mr-1" />
+                                    @endif
+                                    {{ $option->projectType->name }}
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-bold bg-gray-100 text-gray-500 rounded">Générique</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4">
                             @if($option->type == 'fixed_price')
@@ -90,7 +103,11 @@
                                 <x-fas-edit class="w-4 h-4 mr-1" />
                                 Modifier
                             </button>
-                            <button wire:click="delete({{ $option->id }})" class="text-red-600 hover:text-red-900 inline-flex items-center">
+                            <button wire:click="duplicate({{ $option->id }})" class="text-gray-600 hover:text-gray-900 mr-2 inline-flex items-center">
+                                <x-fas-copy class="w-4 h-4 mr-1" />
+                                Dupliquer
+                            </button>
+                            <button wire:click="delete({{ $option->id }})" onclick="confirm('Supprimer cet add-on ?') || event.stopImmediatePropagation()" class="text-red-600 hover:text-red-900 inline-flex items-center">
                                 <x-fas-trash class="w-4 h-4 mr-1" />
                                 Supprimer
                             </button>

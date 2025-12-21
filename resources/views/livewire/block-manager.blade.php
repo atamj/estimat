@@ -132,6 +132,10 @@
                                 <x-fas-edit class="w-4 h-4 mr-1" />
                                 Modifier
                             </button>
+                            <button wire:click="duplicate({{ $block->id }})" class="text-gray-600 hover:text-gray-900 mr-2 inline-flex items-center">
+                                <x-fas-copy class="w-4 h-4 mr-1" />
+                                Dupliquer
+                            </button>
                             <button wire:click="delete({{ $block->id }})" onclick="confirm('Supprimer ce bloc ?') || event.stopImmediatePropagation()" class="text-red-600 hover:text-red-900 inline-flex items-center">
                                 <x-fas-trash class="w-4 h-4 mr-1" />
                                 Supprimer

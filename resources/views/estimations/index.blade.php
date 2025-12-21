@@ -54,6 +54,13 @@
                                     PDF
                                 </a>
                             @endif
+                            <form action="{{ route('estimations.duplicate', $estimation) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="text-gray-600 hover:text-gray-900 flex items-center" title="Dupliquer">
+                                    <x-fas-copy class="w-4 h-4 mr-1" />
+                                    Dupliquer
+                                </button>
+                            </form>
                             <form action="{{ route('estimations.destroy', $estimation) }}" method="POST" onsubmit="return confirm('Supprimer cette estimation ?');">
                                 @csrf
                                 @method('DELETE')

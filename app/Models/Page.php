@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Page extends Model
 {
-    protected $fillable = ['estimation_id', 'name', 'order'];
+    protected $fillable = ['estimation_id', 'name', 'quantity', 'order'];
 
     public function estimation()
     {

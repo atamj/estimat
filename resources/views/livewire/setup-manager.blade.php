@@ -1,4 +1,10 @@
 <div class="space-y-6">
+    @if (session()->has('message'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+            {{ session('message') }}
+        </div>
+    @endif
+
     <div class="bg-white p-6 rounded-lg shadow-md">
         <h2 class="text-xl font-semibold mb-4">{{ $editingSetupId ? 'Modifier' : 'Ajouter' }} une Base Technique</h2>
         <form wire:submit.prevent="save" class="space-y-4">
@@ -97,7 +103,11 @@
                                 <x-fas-edit class="w-4 h-4 mr-1" />
                                 Modifier
                             </button>
-                            <button wire:click="delete({{ $setup->id }})" class="text-red-600 hover:text-red-900 inline-flex items-center">
+                            <button wire:click="duplicate({{ $setup->id }})" class="text-gray-600 hover:text-gray-900 mr-2 inline-flex items-center">
+                                <x-fas-copy class="w-4 h-4 mr-1" />
+                                Dupliquer
+                            </button>
+                            <button wire:click="delete({{ $setup->id }})" onclick="confirm('Supprimer cette base technique ?') || event.stopImmediatePropagation()" class="text-red-600 hover:text-red-900 inline-flex items-center">
                                 <x-fas-trash class="w-4 h-4 mr-1" />
                                 Supprimer
                             </button>
