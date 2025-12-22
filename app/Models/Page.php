@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Page extends Model
 {
-    protected $fillable = ['estimation_id', 'name', 'quantity', 'order'];
+    protected $fillable = ['estimation_id', 'name', 'quantity', 'order', 'type'];
 
     public function estimation()
     {
@@ -17,7 +17,8 @@ class Page extends Model
     {
         return $this->belongsToMany(Block::class, 'page_block')
             ->using(PageBlock::class)
-            ->withPivot(['quantity', 'price_programming', 'price_integration', 'price_field_creation', 'price_content_management', 'order'])
-            ->withTimestamps();
+            ->withPivot(['id', 'quantity', 'price_programming', 'price_integration', 'price_field_creation', 'price_content_management', 'order'])
+            ->withTimestamps()
+            ->orderBy('page_block.order');
     }
 }

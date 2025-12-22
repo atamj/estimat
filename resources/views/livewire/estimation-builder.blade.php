@@ -46,6 +46,21 @@
                         </p>
                     </div>
                 </div>
+
+                <!-- Séparateur -->
+                <div class="hidden md:block h-10 w-px bg-blue-700"></div>
+
+                <!-- Résumé Dashboard -->
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase tracking-widest text-blue-300 font-bold">Pages</p>
+                        <p class="font-bold text-lg">{{ $estimation->regularPages->count() }}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase tracking-widest text-blue-300 font-bold">Blocs</p>
+                        <p class="font-bold text-lg">{{ $estimation->pages->flatMap->blocks->count() }}</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Bouton PDF rapide -->
@@ -199,9 +214,9 @@
                             <div class="ml-3">
                                 <p class="text-sm text-yellow-700">
                                     @if($type == 'fixed')
-                                        Puisque c'est une <strong>estimation forfaitaire</strong> sans taux horaire, seuls les blocs <strong>au forfait</strong> sont disponibles. Renseignez un taux pour accéder également aux blocs à l'heure.
+                                        Puisque c'est une <strong>estimation forfaitaire</strong> sans taux horaire, seuls les blocs et add-ons <strong>au forfait</strong> sont disponibles. Renseignez un taux pour accéder également aux blocs et add-ons à l'heure.
                                     @else
-                                        Puisque c'est une <strong>estimation à l'heure</strong> sans taux horaire, seuls les blocs <strong>à l'heure</strong> sont disponibles. Renseignez un taux pour accéder également aux blocs au forfait.
+                                        Puisque c'est une <strong>estimation à l'heure</strong> sans taux horaire, seuls les blocs et add-ons <strong>à l'heure</strong> sont disponibles. Renseignez un taux pour accéder également aux blocs et add-ons au forfait.
                                     @endif
                                 </p>
                             </div>
@@ -211,12 +226,12 @@
             </div>
         </div>
 
-        <!-- Zone B: Pages & Blocs -->
+        <!-- Zone B: Header, Pages & Footer & Blocs -->
         <div class="space-y-6">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-semibold text-blue-800 flex items-center">
                     <x-fas-layer-group class="w-5 h-5 mr-2" />
-                    2. Pages et Blocs
+                    2. Structure du site
                 </h2>
                 <div class="flex space-x-2">
                     <button wire:click="addPage" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm flex items-center">
@@ -226,115 +241,47 @@
                 </div>
             </div>
 
-            @foreach($estimation->pages as $page)
-                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex flex-col w-1/2">
-                            <input type="text" value="{{ $page->name }}"
-                                   wire:change="$refresh"
-                                   onchange="@this.updatePageName({{ $page->id }}, this.value)"
-                                   class="text-lg font-bold border-none focus:ring-0 p-0">
+            <!-- Site Header -->
+            @if($estimation->headerPage)
+                @include('livewire.partials.builder-page', ['page' => $estimation->headerPage, 'isGlobal' => true])
+            @endif
 
-                            <div class="mt-2 flex items-center space-x-3" x-data="{ showExpl: false }">
-                                <div class="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                                    <label class="text-[10px] uppercase tracking-wider font-black text-blue-700">Nb de pages similaires</label>
-                                    <input type="number"
-                                           value="{{ $page->quantity ?? 1 }}"
-                                           onchange="@this.updatePageQuantity({{ $page->id }}, this.value)"
-                                           class="w-14 p-1 border-2 border-blue-200 rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-center font-bold">
-                                </div>
-                                <button type="button" @click="showExpl = !showExpl" class="text-blue-500 hover:text-blue-700 transition-colors">
-                                    <x-fas-info-circle class="w-4 h-4" />
-                                </button>
-                                <div x-show="showExpl" @click.away="showExpl = false" class="absolute z-10 bg-white border border-blue-200 p-3 rounded-lg shadow-xl text-xs text-gray-600 max-w-xs mt-20" x-cloak>
-                                    <p class="font-bold text-blue-700 mb-1">Pourquoi plusieurs pages ?</p>
-                                    Utilisez ceci si vous avez plusieurs pages basées sur le même gabarit (ex: 10 articles de blog).
-                                    Le coût de création de gabarit et de champs ne sera compté qu'une fois, mais le temps de gestion de contenu sera multiplié par ce nombre.
-                                </div>
-                            </div>
-                        </div>
-                        <button wire:click="deletePage({{ $page->id }})" class="text-red-500 hover:text-red-700 text-sm flex items-center self-start">
-                            <x-fas-trash-alt class="w-4 h-4 mr-1" />
-                            Supprimer la page
-                        </button>
-                    </div>
-
-                    <div class="space-y-4">
-                        @foreach($page->blocks as $block)
-                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
-                                <div class="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h4 class="font-bold text-gray-800">{{ $block->name }}</h4>
-                                        <p class="text-xs text-gray-500 italic">{{ $block->description }}</p>
-                                    </div>
-                                    <button wire:click="removeBlockFromPage({{ $page->id }}, {{ $block->pivot->id }})"
-                                            class="text-red-400 hover:text-red-600 transition-colors" title="Supprimer ce bloc">
-                                        <x-fas-times class="h-5 w-5" />
-                                    </button>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-3 rounded border border-gray-100 items-center">
-                                    <div class="space-y-1">
-                                        <label class="block text-[10px] uppercase tracking-wider font-black text-blue-600">Quantité</label>
-                                        <div class="flex items-center space-x-2">
-                                            <input type="number"
-                                                   value="{{ $block->pivot->quantity }}"
-                                                   wire:change="updatePivot({{ $block->pivot->id }}, 'quantity', $event.target.value)"
-                                                   class="w-20 p-2 border-2 border-gray-200 rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
-                                        </div>
-                                    </div>
-
-                                    <div class="text-right">
-                                        <label class="block text-[10px] uppercase tracking-wider font-black text-gray-500 mb-1">Total ligne</label>
-                                        <div class="text-lg font-bold text-blue-600">
-                                            @php
-                                                $sub = $block->price_field_creation + $block->price_content_management;
-                                                $lineTotal = $sub * $block->pivot->quantity;
-                                            @endphp
-                                            {{ number_format($lineTotal, 2) }}{{ $block->type_unit == 'hour' ? 'h' : '€' }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="mt-2 flex justify-between items-center text-[10px] text-gray-400">
-                                    <div>
-                                        <span class="font-bold">Détails Catalogue :</span>
-                                        Intégration: {{ $block->price_integration }}{{ $block->type_unit == 'hour' ? 'h' : '€' }} |
-                                        Prog: {{ $block->price_programming }}{{ $block->type_unit == 'hour' ? 'h' : '€' }} |
-                                        Champs: {{ $block->price_field_creation }}{{ $block->type_unit == 'hour' ? 'h' : '€' }} |
-                                        Contenu: {{ $block->price_content_management }}{{ $block->type_unit == 'hour' ? 'h' : '€' }}
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-
-                        <div class="mt-4">
-                            <select wire:change="handleBlockSelection({{ $page->id }}, $event.target.value); $event.target.value = ''" class="text-sm border-2 border-gray-300 rounded-md shadow-sm w-full p-2 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                                <option value="">+ Ajouter un bloc...</option>
-                                @foreach($availableBlocks as $availableBlock)
-                                    <option value="{{ $availableBlock->id }}">{{ $availableBlock->name }}</option>
-                                @endforeach
-                                <hr>
-                                <option value="new_block" class="font-bold text-green-600">✨ Ajouter un nouveau bloc...</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+            <!-- Regular Pages -->
+            @foreach($estimation->regularPages as $page)
+                @include('livewire.partials.builder-page', ['page' => $page, 'isGlobal' => false])
             @endforeach
+
+            <!-- Site Footer -->
+            @if($estimation->footerPage)
+                @include('livewire.partials.builder-page', ['page' => $estimation->footerPage, 'isGlobal' => true])
+            @endif
         </div>
 
         <!-- Zone C: Options globales -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 text-blue-800 border-b pb-2 flex items-center">
-                <x-fas-plus-circle class="w-5 h-5 mr-2" />
-                3. Options & Traduction
+        @php
+            $user = auth()->user();
+            $subscription = $user?->activeSubscription;
+            $plan = $subscription?->plan;
+            $canTranslate = $plan ? $plan->has_translation_module : true;
+        @endphp
+        <div class="bg-white p-6 rounded-lg shadow-md {{ !$canTranslate ? 'opacity-75 relative' : '' }}">
+            <h2 class="text-xl font-semibold mb-4 text-blue-800 border-b pb-2 flex items-center justify-between">
+                <div class="flex items-center">
+                    <x-fas-plus-circle class="w-5 h-5 mr-2" />
+                    3. Options & Traduction
+                </div>
+                @if(!$canTranslate)
+                    <span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-1 rounded-full uppercase font-bold flex items-center gap-1">
+                        <x-fas-lock class="w-2 h-2" /> Plan Pro requis
+                    </span>
+                @endif
             </h2>
 
             <div class="space-y-4">
                 <div class="flex items-center space-x-2">
                     <input type="checkbox" wire:model.live="translation_enabled" id="translation_enabled"
-                           class="rounded text-blue-600">
-                    <label for="translation_enabled" class="font-medium text-gray-700">Ce site sera traduit</label>
+                           class="rounded text-blue-600" {{ !$canTranslate ? 'disabled' : '' }}>
+                    <label for="translation_enabled" class="font-medium text-gray-700 {{ !$canTranslate ? 'text-gray-400' : '' }}">Ce site sera traduit</label>
                 </div>
 
                 @if($translation_enabled)

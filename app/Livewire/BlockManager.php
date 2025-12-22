@@ -14,6 +14,7 @@ class BlockManager extends Component
     public $project_type_id = null;
     public $filter_project_type = '';
     public $editingBlockId = null;
+    public $showForm = false;
 
     protected $rules = [
         'name' => 'required|min:3',
@@ -28,11 +29,18 @@ class BlockManager extends Component
     public function mount()
     {
         $this->loadBlocks();
+        $this->project_type_id = ProjectType::where('is_default', true)->value('id');
     }
 
     public function loadBlocks()
     {
+        $user = auth()->user();
         $query = Block::query();
+
+        if ($user) {
+            $query->where('user_id', $user->id);
+        }
+
         if ($this->filter_project_type !== '') {
             if ($this->filter_project_type === 'null') {
                 $query->whereNull('project_type_id');
@@ -52,7 +60,20 @@ class BlockManager extends Component
     {
         $this->validate();
 
+        $user = auth()->user();
+        $subscription = $user?->activeSubscription;
+        $plan = $subscription?->plan;
+
+        if (!$this->editingBlockId && $plan && $plan->max_blocks !== -1) {
+            $count = Block::where('user_id', $user->id)->count();
+            if ($count >= $plan->max_blocks) {
+                session()->flash('error', 'Vous avez atteint la limite de blocs de votre plan.');
+                return;
+            }
+        }
+
         $data = [
+            'user_id' => $user?->id,
             'name' => $this->name,
             'description' => $this->description,
             'type_unit' => $this->type_unit,
@@ -86,6 +107,7 @@ class BlockManager extends Component
         $this->price_field_creation = $block->price_field_creation;
         $this->price_content_management = $block->price_content_management;
         $this->project_type_id = $block->project_type_id;
+        $this->showForm = true;
     }
 
     public function delete($id)
@@ -96,6 +118,18 @@ class BlockManager extends Component
 
     public function duplicate($id)
     {
+        $user = auth()->user();
+        $subscription = $user?->activeSubscription;
+        $plan = $subscription?->plan;
+
+        if ($plan && $plan->max_blocks !== -1) {
+            $count = Block::where('user_id', $user->id)->count();
+            if ($count >= $plan->max_blocks) {
+                session()->flash('error', 'Vous avez atteint la limite de blocs de votre plan.');
+                return;
+            }
+        }
+
         $block = Block::findOrFail($id);
         $newBlock = $block->replicate();
         $newBlock->name .= ' (Copie)';
@@ -107,14 +141,15 @@ class BlockManager extends Component
 
     public function resetFields()
     {
-        $this->reset(['name', 'description', 'type_unit', 'price_programming', 'price_integration', 'price_field_creation', 'price_content_management', 'editingBlockId', 'project_type_id']);
+        $this->reset(['name', 'description', 'type_unit', 'price_programming', 'price_integration', 'price_field_creation', 'price_content_management', 'editingBlockId', 'project_type_id', 'showForm']);
         $this->type_unit = 'hour';
+        $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
     }
 
     public function render()
     {
         return view('livewire.block-manager', [
-            'projectTypes' => ProjectType::all()
+            'projectTypes' => ProjectType::where('user_id', auth()->id())->get()
         ]);
     }
 }

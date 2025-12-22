@@ -12,6 +12,7 @@ class TranslationConfig extends Model
         'default_percentage',
         'default_type',
         'project_type_id',
+        'user_id',
     ];
 
     public function projectType()

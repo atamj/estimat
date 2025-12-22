@@ -1,12 +1,23 @@
 <div class="max-w-2xl mx-auto space-y-6">
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-6 text-blue-800 border-b pb-2">Configuration de la Traduction par défaut</h2>
-
-        @if (session()->has('message'))
-            <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-                {{ session('message') }}
-            </div>
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Réglages de Traduction</h2>
+        @if(!$showForm)
+            <button wire:click="$set('showForm', true)" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center shadow-sm transition-colors">
+                <x-fas-plus class="w-4 h-4 mr-2" />
+                Nouvelle Configuration
+            </button>
         @endif
+    </div>
+
+    @if (session()->has('message'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+            {{ session('message') }}
+        </div>
+    @endif
+
+    @if($showForm)
+    <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-600 transition-all">
+        <h2 class="text-xl font-semibold mb-6 text-blue-800 border-b pb-2">{{ $editingConfigId ? 'Modifier' : 'Ajouter' }} une Configuration</h2>
 
         <form wire:submit.prevent="save" class="space-y-4">
             <div>
@@ -50,6 +61,11 @@
                         <x-fas-times class="w-4 h-4 mr-2" />
                         Annuler
                     </button>
+                @else
+                    <button type="button" wire:click="resetFields" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 font-bold transition duration-200 flex items-center">
+                        <x-fas-times class="w-4 h-4 mr-2" />
+                        Fermer
+                    </button>
                 @endif
                 <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 font-bold transition duration-200 flex items-center">
                     <x-fas-save class="w-4 h-4 mr-2" />
@@ -58,6 +74,7 @@
             </div>
         </form>
     </div>
+    @endif
 
     <!-- Liste des configurations -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden">

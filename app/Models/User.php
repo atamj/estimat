@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
     ];
 
     /**
@@ -43,6 +44,28 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
+    }
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latestOfMany();
+    }
+
+    public function plan()
+    {
+        return $this->activeSubscription()->withDefault([
+            'plan_id' => null,
+        ])->getResults()?->plan();
+    }
+
+    public function getActivePlanAttribute()
+    {
+        return $this->activeSubscription?->plan;
     }
 }

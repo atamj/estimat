@@ -6,7 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProjectType extends Model
 {
-    protected $fillable = ['name', 'icon', 'description'];
+    protected $fillable = ['name', 'icon', 'description', 'is_default', 'user_id'];
+
+    protected $casts = [
+        'is_default' => 'boolean',
+    ];
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($projectType) {
+            if ($projectType->is_default) {
+                // S'assurer qu'un seul type de projet est par défaut
+                static::where('id', '!=', $projectType->id)->update(['is_default' => false]);
+            }
+        });
+    }
 
     public static function getAvailableIcons()
     {

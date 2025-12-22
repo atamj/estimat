@@ -13,8 +13,7 @@ class EstimationController extends Controller
 {
     public function index()
     {
-        $estimations = Estimation::all();
-        return view('estimations.index', compact('estimations'));
+        return view('estimations.index');
     }
 
     public function create()
@@ -52,7 +51,21 @@ class EstimationController extends Controller
             $config = TranslationConfig::whereNull('project_type_id')->first();
         }
 
+        $user = $request->user();
+        if ($user) {
+            $subscription = $user->activeSubscription;
+            $plan = $subscription?->plan;
+
+            if ($plan && $plan->max_estimations !== -1) {
+                $count = \App\Models\Estimation::where('user_id', $user->id)->count();
+                if ($count >= $plan->max_estimations) {
+                    return redirect()->route('estimations.index')->with('error', 'Vous avez atteint la limite d\'estimations de votre plan.');
+                }
+            }
+        }
+
         $estimation = Estimation::create([
+            'user_id' => $user?->id,
             'client_name' => $request->client_name,
             'project_name' => $request->project_name,
             'project_type_id' => $projectTypeId,
@@ -63,11 +76,19 @@ class EstimationController extends Controller
             'translation_type' => $request->type,
         ]);
 
+        // Création automatique du Header et du Footer
+        $estimation->pages()->create(['name' => 'Site Header', 'type' => 'header', 'order' => 0, 'quantity' => 1]);
+        $estimation->pages()->create(['name' => 'Site Footer', 'type' => 'footer', 'order' => 99, 'quantity' => 1]);
+
         return redirect()->route('estimations.builder', $estimation);
     }
 
     public function builder(Estimation $estimation)
     {
+        $user = auth()->user();
+        if ($user && $estimation->user_id !== $user->id) {
+            abort(403);
+        }
         return view('estimations.builder', compact('estimation'));
     }
 
@@ -80,12 +101,27 @@ class EstimationController extends Controller
 
     public function destroy(Estimation $estimation)
     {
+        $user = auth()->user();
+        if ($user && $estimation->user_id !== $user->id) {
+            abort(403);
+        }
         $estimation->delete();
         return redirect()->route('estimations.index')->with('message', 'Estimation supprimée avec succès.');
     }
 
     public function duplicate(Estimation $estimation)
     {
+        $user = auth()->user();
+        $subscription = $user?->activeSubscription;
+        $plan = $subscription?->plan;
+
+        if ($plan && $plan->max_estimations !== -1) {
+            $count = \App\Models\Estimation::where('user_id', $user->id)->count();
+            if ($count >= $plan->max_estimations) {
+                return redirect()->route('estimations.index')->with('error', 'Vous avez atteint la limite d\'estimations de votre plan.');
+            }
+        }
+
         $newEstimation = $estimation->replicate();
         $newEstimation->client_name .= ' (Copie)';
         $newEstimation->save();
@@ -100,7 +136,6 @@ class EstimationController extends Controller
                 $newPage->blocks()->attach($block->id, [
                     'quantity' => $block->pivot->quantity,
                     'order' => $block->pivot->order,
-                    // Note: on ignore les overrides car ils sont dépréciés selon les instructions précédentes
                 ]);
             }
         }
@@ -115,6 +150,11 @@ class EstimationController extends Controller
 
     public function exportPdf(Estimation $estimation)
     {
+        $user = auth()->user();
+        if ($user && $estimation->user_id !== $user->id) {
+            abort(403);
+        }
+
         $calculator = new EstimationCalculator();
         $totals = $calculator->calculateTotals($estimation);
 

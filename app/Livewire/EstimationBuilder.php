@@ -16,6 +16,7 @@ class EstimationBuilder extends Component
 {
     public $estimation;
     public $client_name, $project_name, $hourly_rate, $type, $setup_id, $project_type_id, $translation_enabled, $translation_type, $translation_fixed_price, $translation_fixed_hours, $translation_percentage, $translation_languages_count, $totals;
+    public $blockSearch = '';
 
     // Champs de verrouillage
     public $isPriceLocked = false;
@@ -118,6 +119,18 @@ class EstimationBuilder extends Component
             if (in_array($propertyName, ['project_type_id', 'setup_id']) && $value === '') {
                 $value = null;
                 $this->{$propertyName} = null;
+            }
+
+            $user = auth()->user();
+            $subscription = $user?->activeSubscription;
+            $plan = $subscription?->plan;
+
+            if ($propertyName === 'translation_enabled' && $this->translation_enabled) {
+                if ($plan && !$plan->has_translation_module) {
+                    $this->translation_enabled = false;
+                    $this->addError('translation_enabled', 'Le module de traduction est réservé au plan Pro.');
+                    return;
+                }
             }
 
             $this->estimation->update([
@@ -238,9 +251,12 @@ class EstimationBuilder extends Component
 
     public function deletePage($pageId)
     {
-        Page::find($pageId)->delete();
-        $this->estimation->refresh();
-        $this->calculate();
+        $page = Page::find($pageId);
+        if ($page && $page->type === 'regular') {
+            $page->delete();
+            $this->estimation->refresh();
+            $this->calculate();
+        }
     }
 
     public function handleSetupSelection($value)
@@ -267,7 +283,8 @@ class EstimationBuilder extends Component
     public function addBlockToPage($pageId, $blockId)
     {
         $page = Page::find($pageId);
-        $page->blocks()->attach($blockId);
+        $order = $page->blocks()->max('page_block.order') + 1;
+        $page->blocks()->attach($blockId, ['order' => $order]);
         $this->estimation->refresh();
         $this->calculate();
     }
@@ -293,11 +310,60 @@ class EstimationBuilder extends Component
         $this->estimation->refresh();
     }
 
+    public function movePage($pageId, $direction)
+    {
+        $page = Page::find($pageId);
+        if (!$page || $page->type !== 'regular') return;
+
+        $pages = $this->estimation->regularPages;
+        $currentIndex = $pages->search(fn($p) => $p->id === $pageId);
+
+        if ($direction === 'up' && $currentIndex > 0) {
+            $otherPage = $pages[$currentIndex - 1];
+        } elseif ($direction === 'down' && $currentIndex < $pages->count() - 1) {
+            $otherPage = $pages[$currentIndex + 1];
+        } else {
+            return;
+        }
+
+        $oldOrder = $page->order;
+        $page->update(['order' => $otherPage->order]);
+        $otherPage->update(['order' => $oldOrder]);
+
+        $this->estimation->refresh();
+    }
+
+    public function moveBlock($pageId, $pivotId, $direction)
+    {
+        $page = Page::find($pageId);
+        if (!$page) return;
+
+        $blocks = $page->blocks()->orderBy('page_block.order')->get();
+        $currentIndex = $blocks->search(fn($b) => $b->pivot->id == $pivotId);
+
+        if ($direction === 'up' && $currentIndex > 0) {
+            $otherBlock = $blocks[$currentIndex - 1];
+        } elseif ($direction === 'down' && $currentIndex < $blocks->count() - 1) {
+            $otherBlock = $blocks[$currentIndex + 1];
+        } else {
+            return;
+        }
+
+        $oldOrder = $blocks[$currentIndex]->pivot->order;
+        \DB::table('page_block')->where('id', $pivotId)->update(['order' => $otherBlock->pivot->order]);
+        \DB::table('page_block')->where('id', $otherBlock->pivot->id)->update(['order' => $oldOrder]);
+
+        $this->estimation->refresh();
+    }
+
     public function updatePageQuantity($pageId, $quantity)
     {
-        Page::find($pageId)->update(['quantity' => $quantity]);
-        $this->estimation->refresh();
-        $this->calculate();
+        $page = Page::find($pageId);
+        if ($page && $page->type === 'regular') {
+            $page->update(['quantity' => $quantity]);
+            $this->estimation->refresh();
+            $this->calculate();
+        }
     }
 
     public function toggleAddon($addonId)
@@ -318,7 +384,20 @@ class EstimationBuilder extends Component
             'newBlock.type_unit' => 'required|in:hour,fixed',
         ]);
 
-        $block = Block::create($this->newBlock);
+        $user = auth()->user();
+        $subscription = $user?->activeSubscription;
+        $plan = $subscription?->plan;
+
+        if ($plan && $plan->max_blocks !== -1) {
+            $count = Block::where('user_id', $user->id)->count();
+            if ($count >= $plan->max_blocks) {
+                $this->addError('newBlock.name', 'Vous avez atteint la limite de blocs de votre plan.');
+                return;
+            }
+        }
+
+        $data = array_merge($this->newBlock, ['user_id' => $user?->id]);
+        $block = Block::create($data);
 
         if ($this->selectedPageIdForNewBlock) {
             $this->addBlockToPage($this->selectedPageIdForNewBlock, $block->id);
@@ -400,11 +479,17 @@ class EstimationBuilder extends Component
         if ($this->type === 'fixed') {
             if (!$this->hourly_rate) {
                 $blocksQuery->where('type_unit', 'fixed');
+                $addonsQuery->whereIn('type', ['fixed_price', 'percentage']);
             }
         } else { // hour
             if (!$this->hourly_rate) {
                 $blocksQuery->where('type_unit', 'hour');
+                $addonsQuery->whereIn('type', ['fixed_hours', 'percentage']);
             }
+        }
+
+        if ($this->blockSearch) {
+            $blocksQuery->where('name', 'like', '%' . $this->blockSearch . '%');
         }
 
         return view('livewire.estimation-builder', [

@@ -9,6 +9,7 @@ use App\Services\EstimationCalculator;
 class Estimation extends Model
 {
     protected $fillable = [
+        'user_id',
         'client_name',
         'project_name',
         'hourly_rate',
@@ -33,11 +34,30 @@ class Estimation extends Model
         'project_type_id' => 'integer',
     ];
 
+    public function getTotalPriceAttribute()
+    {
+        $calculator = new EstimationCalculator();
+        $totals = $calculator->calculateTotals($this);
+        return $totals['total_price'];
+    }
+
+    public function getTotalTimeAttribute()
+    {
+        $calculator = new EstimationCalculator();
+        $totals = $calculator->calculateTotals($this);
+        return $totals['total_time'];
+    }
+
     public function getHasContentAttribute()
     {
         $calculator = new EstimationCalculator();
         $totals = $calculator->calculateTotals($this);
         return ($totals['total_price'] > 0 || ($this->type === 'hour' && $totals['total_time'] > 0));
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function projectType()
@@ -53,6 +73,21 @@ class Estimation extends Model
     public function pages()
     {
         return $this->hasMany(Page::class)->orderBy('order');
+    }
+
+    public function regularPages()
+    {
+        return $this->hasMany(Page::class)->where('type', 'regular')->orderBy('order');
+    }
+
+    public function headerPage()
+    {
+        return $this->hasOne(Page::class)->where('type', 'header');
+    }
+
+    public function footerPage()
+    {
+        return $this->hasOne(Page::class)->where('type', 'footer');
     }
 
     public function addons()

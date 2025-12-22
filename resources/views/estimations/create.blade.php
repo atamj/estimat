@@ -14,7 +14,7 @@
                     <label class="block text-sm font-bold text-gray-700 mb-2">Technologie / Type de Projet</label>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 p-3 shadow-sm focus:outline-none hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 transition-all">
-                            <input type="radio" name="project_type_id" value="" class="sr-only" checked>
+                            <input type="radio" name="project_type_id" value="" class="sr-only" {{ !collect($projectTypes)->contains('is_default', true) ? 'checked' : '' }}>
                             <span class="flex flex-col items-center justify-center w-full">
                                 <x-fas-question class="w-6 h-6 mb-2 text-gray-400" />
                                 <span class="text-xs font-bold text-gray-900 text-center">Générique</span>
@@ -23,7 +23,7 @@
 
                         @foreach($projectTypes as $pt)
                             <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 p-3 shadow-sm focus:outline-none hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 transition-all">
-                                <input type="radio" name="project_type_id" value="{{ $pt->id }}" class="sr-only">
+                                <input type="radio" name="project_type_id" value="{{ $pt->id }}" class="sr-only" {{ $pt->is_default ? 'checked' : '' }}>
                                 <span class="flex flex-col items-center justify-center w-full">
                                     @if($pt->icon)
                                         <x-dynamic-component :component="$pt->icon" class="w-6 h-6 mb-2 text-blue-600" />

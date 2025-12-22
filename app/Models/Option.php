@@ -13,6 +13,7 @@ class Option extends Model
         'value',
         'calculation_base',
         'project_type_id',
+        'user_id',
     ];
 
     public function projectType()

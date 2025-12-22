@@ -73,7 +73,12 @@ class EstimationCalculator
         }
 
         // 4. Translation
-        if ($estimation->translation_enabled) {
+        $user = auth()->user();
+        $subscription = $user?->activeSubscription;
+        $plan = $subscription?->plan;
+        $canTranslate = $plan ? $plan->has_translation_module : true;
+
+        if ($estimation->translation_enabled && $canTranslate) {
             $percentage = (float) ($estimation->translation_percentage ?? 0);
             $languages = (int) ($estimation->translation_languages_count ?? 1);
 

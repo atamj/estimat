@@ -19,20 +19,44 @@
 </head>
 <body>
     <div class="header">
-        <h1>Estimation de Projet</h1>
-        <p>Référence: #{{ $estimation->id }} | Date: {{ date('d/m/Y') }}</p>
+        <table style="width: 100%; border: none;">
+            <tr>
+                <td style="border: none; padding: 0;">
+                    <h1>Estimation de Projet</h1>
+                    <p style="color: #666; margin-top: 5px;">Référence: #{{ $estimation->id }} | Date: {{ date('d/m/Y') }}</p>
+                </td>
+                <td style="border: none; padding: 0; text-align: right; vertical-align: top;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2563eb;">ESTIMAT</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="client-info">
-        <strong>Client:</strong> {{ $estimation->client_name }}<br>
-        @if($estimation->project_name)
-            <strong>Projet:</strong> {{ $estimation->project_name }}<br>
-        @endif
-        <strong>Type:</strong> {{ $estimation->type == 'hour' ? 'À l\'heure' : 'Forfait' }}
-        @if($estimation->hourly_rate)
-            <br><strong>Taux horaire:</strong> {{ $estimation->hourly_rate }} €/h
-        @endif
-    </div>
+    <table style="width: 100%; border: none; margin-bottom: 30px;">
+        <tr>
+            <td style="width: 50%; border: none; padding: 0; vertical-align: top;">
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <strong style="color: #2563eb; display: block; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Informations Client</strong>
+                    <div style="font-size: 16px; font-weight: bold;">{{ $estimation->client_name }}</div>
+                    @if($estimation->project_name)
+                        <div style="color: #475569; margin-top: 5px;">Projet: {{ $estimation->project_name }}</div>
+                    @endif
+                </div>
+            </td>
+            <td style="width: 50%; border: none; padding: 0 0 0 20px; vertical-align: top;">
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <strong style="color: #2563eb; display: block; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Détails Estimation</strong>
+                    <div style="font-weight: bold;">Mode: {{ $estimation->type == 'hour' ? 'À l\'heure' : 'Forfait' }}</div>
+                    @if($estimation->projectType)
+                        <div style="color: #475569; margin-top: 5px;">Technologie: {{ $estimation->projectType->name }}</div>
+                    @endif
+                    @if($estimation->hourly_rate)
+                        <div style="color: #475569; margin-top: 5px;">Taux horaire: {{ $estimation->hourly_rate }} €/h</div>
+                    @endif
+                </div>
+            </td>
+        </tr>
+    </table>
 
     <div class="section-title">Base technique & Mise en place</div>
     <table>
@@ -64,10 +88,17 @@
     </table>
 
     <div class="section-title">Détail par Page</div>
-    @foreach($estimation->pages as $page)
+    @php
+        $allPages = collect();
+        if($estimation->headerPage) $allPages->push($estimation->headerPage);
+        $allPages = $allPages->concat($estimation->regularPages);
+        if($estimation->footerPage) $allPages->push($estimation->footerPage);
+    @endphp
+
+    @foreach($allPages as $page)
         <h4 style="margin-bottom: 5px;">
             {{ $page->name }}
-            @if($page->quantity > 1)
+            @if($page->type === 'regular' && $page->quantity > 1)
                 <small style="font-weight: normal; color: #666;">(x{{ $page->quantity }} pages similaires)</small>
             @endif
         </h4>
@@ -136,13 +167,34 @@
 
     <div class="total-box">
         @if($estimation->type == 'hour')
-            <p>Total Temps estimé: <strong>{{ number_format($totals['total_time'], 2) }} h</strong></p>
+            <p style="margin: 0; font-size: 14px; color: #4b5563;">Total Temps estimé: <strong style="color: #111827;">{{ number_format($totals['total_time'], 2) }} h</strong></p>
             @if($estimation->hourly_rate)
-                <p class="grand-total">TOTAL PRIX: {{ number_format($totals['total_price'], 2) }} €</p>
+                <div style="margin-top: 10px; background: #ecfdf5; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #d1fae5;">
+                    <span style="font-size: 12px; font-weight: bold; color: #059669; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Montant Total H.T.</span>
+                    <span class="grand-total">{{ number_format($totals['total_price'], 2) }} €</span>
+                </div>
             @endif
         @else
-            <p class="grand-total">TOTAL FORFAIT: {{ number_format($totals['total_price'], 2) }} €</p>
+            <div style="margin-top: 10px; background: #ecfdf5; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #d1fae5;">
+                <span style="font-size: 12px; font-weight: bold; color: #059669; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Total Forfait H.T.</span>
+                <span class="grand-total">{{ number_format($totals['total_price'], 2) }} €</span>
+            </div>
         @endif
     </div>
+
+    @php
+        $user = $estimation->user;
+        $subscription = $user?->activeSubscription;
+        $plan = $subscription?->plan;
+        $isWhiteLabel = $plan ? $plan->has_white_label_pdf : false;
+    @endphp
+
+    @if(!$isWhiteLabel)
+        <div style="margin-top: 50px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; color: #94a3b8; font-size: 10px;">
+            Estimation générée avec <strong style="color: #2563eb;">ESTIMAT</strong> - L'outil intelligent de chiffrage de projets web.
+            <br>
+            <span style="font-style: italic;">Passez au plan Pro pour retirer cette mention et bénéficier de l'export en marque blanche.</span>
+        </div>
+    @endif
 </body>
 </html>
