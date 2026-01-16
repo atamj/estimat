@@ -48,13 +48,15 @@ class DatabaseSeeder extends Seeder
         $laravel = ProjectType::create([
             'name' => 'Laravel',
             'icon' => 'fab-laravel',
-            'description' => 'Application métier sur mesure performante'
+            'description' => 'Application métier sur mesure performante',
+            'is_default' => false
         ]);
 
         $php = ProjectType::create([
             'name' => 'PHP / Symfony',
             'icon' => 'fab-php',
-            'description' => 'Développement spécifique PHP ou framework Symfony'
+            'description' => 'Développement spécifique PHP ou framework Symfony',
+            'is_default' => false
         ]);
 
         // 2. Bases Techniques (Setups)
@@ -214,6 +216,14 @@ class DatabaseSeeder extends Seeder
         \App\Models\Setup::query()->update(['user_id' => $user->id]);
         \App\Models\Option::query()->update(['user_id' => $user->id]);
         \App\Models\TranslationConfig::query()->update(['user_id' => $user->id]);
+
+
+        \App\Models\Estimation::query()->update(['user_id' => $admin->id]);
+        \App\Models\Block::query()->update(['user_id' => $admin->id]);
+        \App\Models\ProjectType::query()->update(['user_id' => $admin->id]);
+        \App\Models\Setup::query()->update(['user_id' => $admin->id]);
+        \App\Models\Option::query()->update(['user_id' => $admin->id]);
+        \App\Models\TranslationConfig::query()->update(['user_id' => $admin->id]);
 
         // 7. SaaS Plans
         $freePlan = \App\Models\Plan::create([
