@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "vendor/bin/sail",
+            "args": [
+                "artisan",
+                "boost:mcp"
+            ],
+            "cwd": "/run/media/jael/backup/sites/estimate"
+        }
+    }
+}
