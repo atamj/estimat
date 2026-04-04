@@ -5,15 +5,32 @@ namespace App\Livewire;
 use App\Models\Block;
 use App\Models\ProjectType;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class BlockManager extends Component
 {
-    public $blocks;
-    public $name, $description, $type_unit = 'hour';
-    public $price_programming = 0, $price_integration = 0, $price_field_creation = 0, $price_content_management = 0;
+    use WithPagination;
+
+    public $name;
+
+    public $description;
+
+    public $type_unit = 'hour';
+
+    public $price_programming = 0;
+
+    public $price_integration = 0;
+
+    public $price_field_creation = 0;
+
+    public $price_content_management = 0;
+
     public $project_type_id = null;
+
     public $filter_project_type = '';
+
     public $editingBlockId = null;
+
     public $showForm = false;
 
     protected $rules = [
@@ -26,34 +43,14 @@ class BlockManager extends Component
         'project_type_id' => 'nullable|exists:project_types,id',
     ];
 
-    public function mount()
+    public function mount(): void
     {
-        $this->loadBlocks();
-        $this->project_type_id = ProjectType::where('is_default', true)->value('id');
+        $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
     }
 
-    public function loadBlocks()
+    public function updatedFilterProjectType(): void
     {
-        $user = auth()->user();
-        $query = Block::query();
-
-        if ($user) {
-            $query->where('user_id', $user->id);
-        }
-
-        if ($this->filter_project_type !== '') {
-            if ($this->filter_project_type === 'null') {
-                $query->whereNull('project_type_id');
-            } else {
-                $query->where('project_type_id', $this->filter_project_type);
-            }
-        }
-        $this->blocks = $query->with('projectType')->get();
-    }
-
-    public function updatedFilterProjectType()
-    {
-        $this->loadBlocks();
+        $this->resetPage();
     }
 
     public function save()
@@ -64,10 +61,11 @@ class BlockManager extends Component
         $subscription = $user?->activeSubscription;
         $plan = $subscription?->plan;
 
-        if (!$this->editingBlockId && $plan && $plan->max_blocks !== -1) {
+        if (! $this->editingBlockId && $plan && $plan->max_blocks !== -1) {
             $count = Block::where('user_id', $user->id)->count();
             if ($count >= $plan->max_blocks) {
                 session()->flash('error', 'Vous avez atteint la limite de blocs de votre plan.');
+
                 return;
             }
         }
@@ -85,13 +83,12 @@ class BlockManager extends Component
         ];
 
         if ($this->editingBlockId) {
-            Block::find($this->editingBlockId)->update($data);
+            Block::findOrFail($this->editingBlockId)->update($data);
         } else {
             Block::create($data);
         }
 
         $this->resetFields();
-        $this->loadBlocks();
         session()->flash('message', $this->editingBlockId ? 'Bloc mis à jour.' : 'Bloc créé.');
     }
 
@@ -110,10 +107,9 @@ class BlockManager extends Component
         $this->showForm = true;
     }
 
-    public function delete($id)
+    public function delete($id): void
     {
-        Block::find($id)->delete();
-        $this->loadBlocks();
+        Block::findOrFail($id)->delete();
     }
 
     public function duplicate($id)
@@ -126,6 +122,7 @@ class BlockManager extends Component
             $count = Block::where('user_id', $user->id)->count();
             if ($count >= $plan->max_blocks) {
                 session()->flash('error', 'Vous avez atteint la limite de blocs de votre plan.');
+
                 return;
             }
         }
@@ -135,7 +132,6 @@ class BlockManager extends Component
         $newBlock->name .= ' (Copie)';
         $newBlock->save();
 
-        $this->loadBlocks();
         session()->flash('message', 'Bloc dupliqué avec succès.');
     }
 
@@ -146,10 +142,22 @@ class BlockManager extends Component
         $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
     }
 
-    public function render()
+    public function render(): \Illuminate\View\View
     {
+        $user = auth()->user();
+        $query = Block::query()->where('user_id', $user->id);
+
+        if ($this->filter_project_type !== '') {
+            if ($this->filter_project_type === 'null') {
+                $query->whereNull('project_type_id');
+            } else {
+                $query->where('project_type_id', $this->filter_project_type);
+            }
+        }
+
         return view('livewire.block-manager', [
-            'projectTypes' => ProjectType::where('user_id', auth()->id())->get()
+            'blocks' => $query->with('projectType')->orderBy('name')->paginate(15),
+            'projectTypes' => ProjectType::where('user_id', auth()->id())->get(),
         ]);
     }
 }

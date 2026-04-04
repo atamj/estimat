@@ -1,28 +1,29 @@
 <x-layout>
-    <x-slot:title>Nouvelle Estimation - Étape 1</x-slot:title>
+    <x-slot:title>Nouvelle Estimation</x-slot:title>
 
     <div class="max-w-2xl mx-auto">
-        <div class="bg-white p-8 rounded-lg shadow-md border-t-4 border-blue-600">
-            <h1 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md border-t-4 border-blue-600">
+            <h1 class="text-2xl font-bold mb-8 text-gray-800 dark:text-gray-100 flex items-center">
                 <x-fas-file-invoice class="w-6 h-6 mr-3 text-blue-600" />
                 Nouvelle Estimation
             </h1>
 
-            <form action="{{ route('estimations.create.step2') }}" method="GET" class="space-y-6">
+            <form action="{{ route('estimations.store') }}" method="POST" class="space-y-8">
+                @csrf
 
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Technologie / Type de Projet</label>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Technologie / Type de Projet</label>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 p-3 shadow-sm focus:outline-none hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 transition-all">
+                        <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30 transition-all">
                             <input type="radio" name="project_type_id" value="" class="sr-only" {{ !collect($projectTypes)->contains('is_default', true) ? 'checked' : '' }}>
                             <span class="flex flex-col items-center justify-center w-full">
                                 <x-fas-question class="w-6 h-6 mb-2 text-gray-400" />
-                                <span class="text-xs font-bold text-gray-900 text-center">Générique</span>
+                                <span class="text-xs font-bold text-gray-900 dark:text-gray-100 text-center">Générique</span>
                             </span>
                         </label>
 
                         @foreach($projectTypes as $pt)
-                            <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 p-3 shadow-sm focus:outline-none hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 transition-all">
+                            <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30 transition-all">
                                 <input type="radio" name="project_type_id" value="{{ $pt->id }}" class="sr-only" {{ $pt->is_default ? 'checked' : '' }}>
                                 <span class="flex flex-col items-center justify-center w-full">
                                     @if($pt->icon)
@@ -30,7 +31,7 @@
                                     @else
                                         <x-fas-code class="w-6 h-6 mb-2 text-blue-600" />
                                     @endif
-                                    <span class="text-xs font-bold text-gray-900 text-center">{{ $pt->name }}</span>
+                                    <span class="text-xs font-bold text-gray-900 dark:text-gray-100 text-center">{{ $pt->name }}</span>
                                 </span>
                             </label>
                         @endforeach
@@ -39,46 +40,63 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Type d'estimation</label>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Type d'estimation</label>
                     <div class="grid grid-cols-2 gap-4">
-                        <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 p-4 shadow-sm focus:outline-none hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                        <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30">
                             <input type="radio" name="type" value="hour" class="sr-only" checked>
-                            <span class="flex flex-1">
-                                <span class="flex flex-col">
-                                    <span class="block text-sm font-bold text-gray-900 flex items-center">
-                                        <x-fas-clock class="w-4 h-4 mr-2 text-blue-600" />
-                                        À l'heure
-                                    </span>
-                                    <span class="mt-1 flex items-center text-xs text-gray-500">
-                                        Calcul basé sur le temps passé
-                                    </span>
+                            <span class="flex flex-col">
+                                <span class="block text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                                    <x-fas-clock class="w-4 h-4 mr-2 text-blue-600" />
+                                    À l'heure
                                 </span>
+                                <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">Calcul basé sur le temps passé</span>
                             </span>
                         </label>
 
-                        <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 p-4 shadow-sm focus:outline-none hover:bg-gray-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                        <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30">
                             <input type="radio" name="type" value="fixed" class="sr-only">
-                            <span class="flex flex-1">
-                                <span class="flex flex-col">
-                                    <span class="block text-sm font-bold text-gray-900 flex items-center">
-                                        <x-fas-euro-sign class="w-4 h-4 mr-2 text-blue-600" />
-                                        Forfaitaire
-                                    </span>
-                                    <span class="mt-1 flex items-center text-xs text-gray-500">
-                                        Prix fixe global défini par bloc
-                                    </span>
+                            <span class="flex flex-col">
+                                <span class="block text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                                    <x-fas-euro-sign class="w-4 h-4 mr-2 text-blue-600" />
+                                    Forfaitaire
                                 </span>
+                                <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">Prix fixe global défini par bloc</span>
                             </span>
                         </label>
                     </div>
                 </div>
 
-                <div class="pt-4 flex items-center justify-between border-t border-gray-100">
-                    <a href="{{ route('estimations.index') }}" class="text-gray-500 hover:text-gray-700 text-sm font-medium">
+                <div class="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nom du client <span class="text-red-500">*</span></label>
+                        <input type="text" name="client_name" required autofocus value="{{ old('client_name') }}"
+                               class="block w-full border-2 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                               placeholder="ex: Jean Dupont, Société ACME...">
+                        @error('client_name') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div x-data="{ show: false }">
+                        <div x-show="!show">
+                            <button type="button" @click="show = true" class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center transition-colors">
+                                <x-fas-plus-circle class="w-4 h-4 mr-2" />
+                                Ajouter un nom de projet (optionnel)
+                            </button>
+                        </div>
+                        <div x-show="show" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nom du projet</label>
+                            <input type="text" name="project_name" value="{{ old('project_name') }}"
+                                   class="block w-full border-2 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                   placeholder="ex: Refonte Site Vitrine, Application Mobile...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex items-center justify-between border-t border-gray-100 dark:border-gray-700">
+                    <a href="{{ route('estimations.index') }}" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm font-medium">
                         Annuler
                     </a>
                     <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 font-bold shadow-lg transition duration-200 flex items-center">
-                        Continuer vers le Builder
+                        Créer l'estimation
                         <x-fas-arrow-right class="w-4 h-4 ml-2" />
                     </button>
                 </div>

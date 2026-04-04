@@ -8,9 +8,21 @@ use Livewire\Component;
 class CouponManager extends Component
 {
     public $coupons;
-    public $code, $type = 'percentage', $value, $expires_at, $max_uses;
+
+    public $code;
+
+    public $type = 'percentage';
+
+    public $value;
+
+    public $expires_at;
+
+    public $max_uses;
+
     public $is_active = true;
+
     public $editingCouponId = null;
+
     public $showForm = false;
 
     protected $rules = [
@@ -31,8 +43,10 @@ class CouponManager extends Component
 
     public function toggleForm()
     {
-        $this->showForm = !$this->showForm;
-        if (!$this->showForm) $this->resetFields();
+        $this->showForm = ! $this->showForm;
+        if (! $this->showForm) {
+            $this->resetFields();
+        }
     }
 
     public function resetFields()
@@ -50,7 +64,7 @@ class CouponManager extends Component
     {
         $rules = $this->rules;
         if ($this->editingCouponId) {
-            $rules['code'] = 'required|string|unique:coupons,code,' . $this->editingCouponId;
+            $rules['code'] = 'required|string|unique:coupons,code,'.$this->editingCouponId;
         }
         $this->validate($rules);
 
@@ -64,7 +78,7 @@ class CouponManager extends Component
         ];
 
         if ($this->editingCouponId) {
-            Coupon::find($this->editingCouponId)->update($data);
+            Coupon::findOrFail($this->editingCouponId)->update($data);
             session()->flash('message', 'Code promo mis à jour avec succès.');
         } else {
             Coupon::create($data);
@@ -91,7 +105,7 @@ class CouponManager extends Component
 
     public function delete($id)
     {
-        Coupon::find($id)->delete();
+        Coupon::findOrFail($id)->delete();
         $this->loadCoupons();
         session()->flash('message', 'Code promo supprimé avec succès.');
     }

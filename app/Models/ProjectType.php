@@ -18,8 +18,10 @@ class ProjectType extends Model
 
         static::saving(function ($projectType) {
             if ($projectType->is_default) {
-                // S'assurer qu'un seul type de projet est par défaut
-                static::where('id', '!=', $projectType->id)->update(['is_default' => false]);
+                // S'assurer qu'un seul type de projet est par défaut pour cet utilisateur
+                static::where('id', '!=', $projectType->id)
+                    ->where('user_id', $projectType->user_id)
+                    ->update(['is_default' => false]);
             }
         });
     }

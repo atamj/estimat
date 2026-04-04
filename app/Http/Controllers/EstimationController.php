@@ -19,20 +19,8 @@ class EstimationController extends Controller
     public function create()
     {
         $projectTypes = \App\Models\ProjectType::all();
+
         return view('estimations.create', compact('projectTypes'));
-    }
-
-    public function createStep2(Request $request)
-    {
-        $request->validate([
-            'project_type_id' => 'nullable|exists:project_types,id',
-            'type' => 'required|in:hour,fixed',
-        ]);
-
-        $project_type_id = $request->project_type_id;
-        $type = $request->type;
-
-        return view('estimations.create_step2', compact('project_type_id', 'type'));
     }
 
     public function store(Request $request)
@@ -47,7 +35,7 @@ class EstimationController extends Controller
         $projectTypeId = $request->project_type_id;
         $config = TranslationConfig::where('project_type_id', $projectTypeId)->first();
 
-        if (!$config && $projectTypeId) {
+        if (! $config && $projectTypeId) {
             $config = TranslationConfig::whereNull('project_type_id')->first();
         }
 
@@ -89,13 +77,15 @@ class EstimationController extends Controller
         if ($user && $estimation->user_id !== $user->id) {
             abort(403);
         }
+
         return view('estimations.builder', compact('estimation'));
     }
 
     public function show(Estimation $estimation)
     {
-        $calculator = new EstimationCalculator();
+        $calculator = new EstimationCalculator;
         $totals = $calculator->calculateTotals($estimation);
+
         return view('estimations.show', compact('estimation', 'totals'));
     }
 
@@ -106,6 +96,7 @@ class EstimationController extends Controller
             abort(403);
         }
         $estimation->delete();
+
         return redirect()->route('estimations.index')->with('message', 'Estimation supprimée avec succès.');
     }
 
@@ -136,6 +127,10 @@ class EstimationController extends Controller
                 $newPage->blocks()->attach($block->id, [
                     'quantity' => $block->pivot->quantity,
                     'order' => $block->pivot->order,
+                    'price_programming' => $block->pivot->price_programming,
+                    'price_integration' => $block->pivot->price_integration,
+                    'price_field_creation' => $block->pivot->price_field_creation,
+                    'price_content_management' => $block->pivot->price_content_management,
                 ]);
             }
         }
@@ -155,12 +150,12 @@ class EstimationController extends Controller
             abort(403);
         }
 
-        $calculator = new EstimationCalculator();
+        $calculator = new EstimationCalculator;
         $totals = $calculator->calculateTotals($estimation);
 
         $html = view('estimations.pdf', compact('estimation', 'totals'))->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
 

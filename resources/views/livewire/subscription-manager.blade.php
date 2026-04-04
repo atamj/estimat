@@ -1,15 +1,15 @@
 <div class="max-w-4xl mx-auto">
     <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-800">Mon Abonnement</h2>
-        <p class="text-gray-600">Gérez votre offre et suivez votre consommation.</p>
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Mon Abonnement</h2>
+        <p class="text-gray-600 dark:text-gray-400">Gérez votre offre et suivez votre consommation.</p>
     </div>
 
     @if($plan)
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-            <div class="p-6 bg-blue-50 border-b border-gray-200 flex justify-between items-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
+            <div class="p-6 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <div>
                     <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Offre actuelle</span>
-                    <h3 class="text-xl font-bold text-gray-900">{{ $plan->name }}</h3>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ $plan->name }}</h3>
                 </div>
                 <div class="text-right">
                     @if($subscription->type === 'lifetime')
@@ -22,31 +22,31 @@
             <div class="p-6 grid md:grid-cols-2 gap-8">
                 <!-- Quotas -->
                 <div class="space-y-6">
-                    <h4 class="font-bold text-gray-800 flex items-center gap-2">
+                    <h4 class="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                         <x-fas-chart-pie class="w-4 h-4 text-blue-500" />
                         Utilisation des ressources
                     </h4>
 
                     <div>
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-600">Estimations</span>
-                            <span class="font-bold {{ ($plan->max_estimations != -1 && $usage['estimations'] >= $plan->max_estimations) ? 'text-red-600' : 'text-gray-900' }}">
+                            <span class="text-gray-600 dark:text-gray-400">Estimations</span>
+                            <span class="font-bold {{ ($plan->max_estimations != -1 && $usage['estimations'] >= $plan->max_estimations) ? 'text-red-600' : 'text-gray-900 dark:text-gray-100' }}">
                                 {{ $usage['estimations'] }} / {{ $plan->max_estimations == -1 ? '∞' : $plan->max_estimations }}
                             </span>
                         </div>
-                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div class="h-full bg-blue-500" style="width: {{ $plan->max_estimations == -1 ? 0 : min(100, ($usage['estimations'] / $plan->max_estimations) * 100) }}%"></div>
                         </div>
                     </div>
 
                     <div>
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-600">Blocs Catalogue</span>
-                            <span class="font-bold {{ ($plan->max_blocks != -1 && $usage['blocks'] >= $plan->max_blocks) ? 'text-red-600' : 'text-gray-900' }}">
+                            <span class="text-gray-600 dark:text-gray-400">Blocs Catalogue</span>
+                            <span class="font-bold {{ ($plan->max_blocks != -1 && $usage['blocks'] >= $plan->max_blocks) ? 'text-red-600' : 'text-gray-900 dark:text-gray-100' }}">
                                 {{ $usage['blocks'] }} / {{ $plan->max_blocks == -1 ? '∞' : $plan->max_blocks }}
                             </span>
                         </div>
-                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div class="h-full bg-indigo-500" style="width: {{ $plan->max_blocks == -1 ? 0 : min(100, ($usage['blocks'] / $plan->max_blocks) * 100) }}%"></div>
                         </div>
                     </div>
@@ -54,12 +54,12 @@
 
                 <!-- Features -->
                 <div class="space-y-4">
-                    <h4 class="font-bold text-gray-800 flex items-center gap-2">
+                    <h4 class="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                         <x-fas-star class="w-4 h-4 text-yellow-500" />
                         Inclus dans votre plan
                     </h4>
                     <ul class="space-y-2">
-                        <li class="flex items-center gap-2 text-sm {{ $plan->has_white_label_pdf ? 'text-gray-700' : 'text-gray-400' }}">
+                        <li class="flex items-center gap-2 text-sm {{ $plan->has_white_label_pdf ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500' }}">
                             @if($plan->has_white_label_pdf)
                                 <x-fas-check-circle class="w-4 h-4 text-green-500" />
                             @else
@@ -67,7 +67,7 @@
                             @endif
                             Export PDF Marque Blanche
                         </li>
-                        <li class="flex items-center gap-2 text-sm {{ $plan->has_translation_module ? 'text-gray-700' : 'text-gray-400' }}">
+                        <li class="flex items-center gap-2 text-sm {{ $plan->has_translation_module ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500' }}">
                             @if($plan->has_translation_module)
                                 <x-fas-check-circle class="w-4 h-4 text-green-500" />
                             @else
@@ -75,7 +75,7 @@
                             @endif
                             Module Traduction avancée
                         </li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700">
+                        <li class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                             <x-fas-check-circle class="w-4 h-4 text-green-500" /> Support par email
                         </li>
                     </ul>
@@ -91,13 +91,13 @@
     @endif
 
     <div class="mb-8">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Changer d'offre</h3>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Changer d'offre</h3>
         <div class="grid md:grid-cols-3 gap-6">
             @foreach($availablePlans as $p)
-                <div class="bg-white rounded-xl border {{ $plan && $plan->id === $p->id ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200' }} p-6 flex flex-col">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border {{ $plan && $plan->id === $p->id ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900' : 'border-gray-200 dark:border-gray-700' }} p-6 flex flex-col">
                     <div class="mb-4">
-                        <h4 class="font-bold text-gray-900">{{ $p->name }}</h4>
-                        <p class="text-xs text-gray-500">{{ $p->description }}</p>
+                        <h4 class="font-bold text-gray-900 dark:text-gray-100">{{ $p->name }}</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $p->description }}</p>
                     </div>
                     <div class="mb-6">
                         @if($p->price_lifetime)

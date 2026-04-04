@@ -3,17 +3,37 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Plan;
-use Livewire\Component;
 use Illuminate\Support\Str;
+use Livewire\Component;
 
 class PlanManager extends Component
 {
     public $plans;
-    public $name, $slug, $description, $price_monthly, $price_yearly, $price_lifetime;
-    public $max_estimations = -1, $max_blocks = -1;
-    public $has_white_label_pdf = false, $has_translation_module = true;
+
+    public $name;
+
+    public $slug;
+
+    public $description;
+
+    public $price_monthly;
+
+    public $price_yearly;
+
+    public $price_lifetime;
+
+    public $max_estimations = -1;
+
+    public $max_blocks = -1;
+
+    public $has_white_label_pdf = false;
+
+    public $has_translation_module = true;
+
     public $is_active = true;
+
     public $editingPlanId = null;
+
     public $showForm = false;
 
     protected $rules = [
@@ -41,8 +61,10 @@ class PlanManager extends Component
 
     public function toggleForm()
     {
-        $this->showForm = !$this->showForm;
-        if (!$this->showForm) $this->resetFields();
+        $this->showForm = ! $this->showForm;
+        if (! $this->showForm) {
+            $this->resetFields();
+        }
     }
 
     public function resetFields()
@@ -80,7 +102,7 @@ class PlanManager extends Component
         ];
 
         if ($this->editingPlanId) {
-            Plan::find($this->editingPlanId)->update($data);
+            Plan::findOrFail($this->editingPlanId)->update($data);
             session()->flash('message', 'Plan mis à jour avec succès.');
         } else {
             Plan::create($data);
@@ -97,6 +119,7 @@ class PlanManager extends Component
         if ($this->editingPlanId == $id) {
             $this->resetFields();
             $this->showForm = false;
+
             return;
         }
 
@@ -113,16 +136,16 @@ class PlanManager extends Component
         $this->price_lifetime = $plan->price_lifetime;
         $this->max_estimations = $plan->max_estimations;
         $this->max_blocks = $plan->max_blocks;
-        $this->has_white_label_pdf = (bool)$plan->has_white_label_pdf;
-        $this->has_translation_module = (bool)$plan->has_translation_module;
-        $this->is_active = (bool)$plan->is_active;
+        $this->has_white_label_pdf = (bool) $plan->has_white_label_pdf;
+        $this->has_translation_module = (bool) $plan->has_translation_module;
+        $this->is_active = (bool) $plan->is_active;
 
         $this->showForm = true;
     }
 
     public function delete($id)
     {
-        Plan::find($id)->delete();
+        Plan::findOrFail($id)->delete();
         $this->loadPlans();
         session()->flash('message', 'Plan supprimé avec succès.');
     }

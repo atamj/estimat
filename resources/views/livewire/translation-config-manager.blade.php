@@ -1,6 +1,6 @@
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Réglages de Traduction</h2>
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Réglages de Traduction</h2>
         @if(!$showForm)
             <button wire:click="$set('showForm', true)" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center shadow-sm transition-colors">
                 <x-fas-plus class="w-4 h-4 mr-2" />
@@ -17,7 +17,7 @@
 
     @if($showForm)
     <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-600 transition-all">
-        <h2 class="text-xl font-semibold mb-6 text-blue-800 border-b pb-2">{{ $editingConfigId ? 'Modifier' : 'Ajouter' }} une Configuration</h2>
+        <h2 class="text-xl font-semibold mb-6 text-blue-800 dark:text-blue-400 border-b dark:border-gray-700 pb-2">{{ $editingConfigId ? 'Modifier' : 'Ajouter' }} une Configuration</h2>
 
         <form wire:submit.prevent="save" class="space-y-4">
             <div>

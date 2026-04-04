@@ -10,7 +10,6 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 Route::middleware('auth')->group(function () {
     Route::resource('blocks', BlockController::class);
-    Route::get('estimations/create/step2', [EstimationController::class, 'createStep2'])->name('estimations.create.step2');
     Route::resource('estimations', EstimationController::class);
     Route::post('estimations/{estimation}/duplicate', [EstimationController::class, 'duplicate'])->name('estimations.duplicate');
     Route::get('estimations/{estimation}/builder', [EstimationController::class, 'builder'])->name('estimations.builder');
@@ -20,10 +19,6 @@ Route::middleware('auth')->group(function () {
     Route::view('settings/options', 'settings.options')->name('settings.options');
     Route::view('settings/project-types', 'settings.project-types')->name('settings.project-types');
     Route::view('settings/translation', 'settings.translation')->name('settings.translation');
-
-    Route::get('subscription', function () {
-        return view('subscription.index');
-    })->name('subscription.index');
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::view('plans', 'admin.plans')->name('plans');

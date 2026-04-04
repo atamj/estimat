@@ -47,6 +47,7 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
         ];
     }
+
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
@@ -57,11 +58,9 @@ class User extends Authenticatable
         return $this->hasOne(Subscription::class)->where('status', 'active')->latestOfMany();
     }
 
-    public function plan()
+    public function plan(): ?\App\Models\Plan
     {
-        return $this->activeSubscription()->withDefault([
-            'plan_id' => null,
-        ])->getResults()?->plan();
+        return $this->activeSubscription?->plan;
     }
 
     public function getActivePlanAttribute()

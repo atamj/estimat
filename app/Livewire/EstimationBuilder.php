@@ -2,12 +2,12 @@
 
 namespace App\Livewire;
 
-use App\Models\Estimation;
-use App\Models\Page;
 use App\Models\Block;
+use App\Models\Estimation;
+use App\Models\Option;
+use App\Models\Page;
 use App\Models\ProjectType;
 use App\Models\Setup;
-use App\Models\Option;
 use App\Models\TranslationConfig;
 use App\Services\EstimationCalculator;
 use Livewire\Component;
@@ -15,17 +15,47 @@ use Livewire\Component;
 class EstimationBuilder extends Component
 {
     public $estimation;
-    public $client_name, $project_name, $hourly_rate, $type, $setup_id, $project_type_id, $translation_enabled, $translation_type, $translation_fixed_price, $translation_fixed_hours, $translation_percentage, $translation_languages_count, $totals;
+
+    public $client_name;
+
+    public $project_name;
+
+    public $hourly_rate;
+
+    public $type;
+
+    public $setup_id;
+
+    public $project_type_id;
+
+    public $translation_enabled;
+
+    public $translation_type;
+
+    public $translation_fixed_price;
+
+    public $translation_fixed_hours;
+
+    public $translation_percentage;
+
+    public $translation_languages_count;
+
+    public $totals;
+
     public $blockSearch = '';
 
     // Champs de verrouillage
     public $isPriceLocked = false;
+
     public $isHoursLocked = false;
+
     public $isPercentageLocked = false;
 
     // Modal nouveau bloc
     public $showBlockModal = false;
+
     public $selectedPageIdForNewBlock = null;
+
     public $newBlock = [
         'name' => '',
         'description' => '',
@@ -39,6 +69,7 @@ class EstimationBuilder extends Component
 
     // Modal nouvelle base technique
     public $showSetupModal = false;
+
     public $newSetup = [
         'type' => '',
         'fixed_price' => 0,
@@ -62,10 +93,10 @@ class EstimationBuilder extends Component
         'translation_percentage' => 'nullable|numeric|min:0',
         'translation_languages_count' => 'required|integer|min:1',
     ];
+
     /**
      * @var array|int[]
      */
-
     public function mount(Estimation $estimation)
     {
         $this->estimation = $estimation;
@@ -109,7 +140,7 @@ class EstimationBuilder extends Component
         $fields = [
             'client_name', 'project_name', 'hourly_rate', 'type', 'setup_id', 'project_type_id',
             'translation_enabled', 'translation_type', 'translation_fixed_price', 'translation_fixed_hours',
-            'translation_percentage', 'translation_languages_count'
+            'translation_percentage', 'translation_languages_count',
         ];
 
         if (in_array($propertyName, $fields)) {
@@ -126,15 +157,16 @@ class EstimationBuilder extends Component
             $plan = $subscription?->plan;
 
             if ($propertyName === 'translation_enabled' && $this->translation_enabled) {
-                if ($plan && !$plan->has_translation_module) {
+                if ($plan && ! $plan->has_translation_module) {
                     $this->translation_enabled = false;
                     $this->addError('translation_enabled', 'Le module de traduction est réservé au plan Pro.');
+
                     return;
                 }
             }
 
             $this->estimation->update([
-                $propertyName => $value
+                $propertyName => $value,
             ]);
 
             if ($propertyName === 'project_type_id') {
@@ -163,7 +195,7 @@ class EstimationBuilder extends Component
     public function syncWithGlobalTranslationConfig($propertyName)
     {
         $config = TranslationConfig::where('project_type_id', $this->project_type_id)->first();
-        if (!$config && !$this->project_type_id) {
+        if (! $config && ! $this->project_type_id) {
             $config = TranslationConfig::whereNull('project_type_id')->first();
         }
 
@@ -176,10 +208,10 @@ class EstimationBuilder extends Component
 
             if (isset($mapping[$propertyName])) {
                 $config->update([
-                    $mapping[$propertyName] => $this->{$propertyName}
+                    $mapping[$propertyName] => $this->{$propertyName},
                 ]);
             }
-        } else if ($this->project_type_id) {
+        } elseif ($this->project_type_id) {
             // Créer une config si elle n'existe pas pour ce type de projet
             TranslationConfig::create([
                 'project_type_id' => $this->project_type_id,
@@ -193,7 +225,7 @@ class EstimationBuilder extends Component
     public function checkTranslationLock()
     {
         $config = TranslationConfig::where('project_type_id', $this->project_type_id)->first();
-        if (!$config) {
+        if (! $config) {
             $config = TranslationConfig::whereNull('project_type_id')->first();
         }
 
@@ -213,7 +245,7 @@ class EstimationBuilder extends Component
         $config = TranslationConfig::where('project_type_id', $this->project_type_id)->first();
 
         // Si pas de config spécifique, on prend la config générique (project_type_id is null)
-        if (!$config) {
+        if (! $config) {
             $config = TranslationConfig::whereNull('project_type_id')->first();
         }
 
@@ -235,7 +267,7 @@ class EstimationBuilder extends Component
 
     public function calculate()
     {
-        $calculator = new EstimationCalculator();
+        $calculator = new EstimationCalculator;
         $this->totals = $calculator->calculateTotals($this->estimation);
     }
 
@@ -266,6 +298,7 @@ class EstimationBuilder extends Component
         } else {
             $this->setup_id = $value ?: null;
             $this->estimation->update(['setup_id' => $this->setup_id]);
+            $this->estimation->refresh();
             $this->calculate();
         }
     }
@@ -282,8 +315,8 @@ class EstimationBuilder extends Component
 
     public function addBlockToPage($pageId, $blockId)
     {
-        $page = Page::find($pageId);
-        $order = $page->blocks()->max('page_block.order') + 1;
+        $page = Page::findOrFail($pageId);
+        $order = ($page->blocks()->max('page_block.order') ?? 0) + 1;
         $page->blocks()->attach($blockId, ['order' => $order]);
         $this->estimation->refresh();
         $this->calculate();
@@ -306,17 +339,19 @@ class EstimationBuilder extends Component
 
     public function updatePageName($pageId, $name)
     {
-        Page::find($pageId)->update(['name' => $name]);
+        Page::findOrFail($pageId)->update(['name' => $name]);
         $this->estimation->refresh();
     }
 
     public function movePage($pageId, $direction)
     {
         $page = Page::find($pageId);
-        if (!$page || $page->type !== 'regular') return;
+        if (! $page || $page->type !== 'regular') {
+            return;
+        }
 
         $pages = $this->estimation->regularPages;
-        $currentIndex = $pages->search(fn($p) => $p->id === $pageId);
+        $currentIndex = $pages->search(fn ($p) => $p->id === $pageId);
 
         if ($direction === 'up' && $currentIndex > 0) {
             $otherPage = $pages[$currentIndex - 1];
@@ -336,10 +371,12 @@ class EstimationBuilder extends Component
     public function moveBlock($pageId, $pivotId, $direction)
     {
         $page = Page::find($pageId);
-        if (!$page) return;
+        if (! $page) {
+            return;
+        }
 
         $blocks = $page->blocks()->orderBy('page_block.order')->get();
-        $currentIndex = $blocks->search(fn($b) => $b->pivot->id == $pivotId);
+        $currentIndex = $blocks->search(fn ($b) => $b->pivot->id == $pivotId);
 
         if ($direction === 'up' && $currentIndex > 0) {
             $otherBlock = $blocks[$currentIndex - 1];
@@ -392,6 +429,7 @@ class EstimationBuilder extends Component
             $count = Block::where('user_id', $user->id)->count();
             if ($count >= $plan->max_blocks) {
                 $this->addError('newBlock.name', 'Vous avez atteint la limite de blocs de votre plan.');
+
                 return;
             }
         }
@@ -425,10 +463,11 @@ class EstimationBuilder extends Component
             'newSetup.type' => 'required|min:3',
         ]);
 
-        $setup = Setup::create($this->newSetup);
+        $setup = Setup::create(array_merge($this->newSetup, ['user_id' => auth()->id()]));
 
         $this->setup_id = $setup->id;
         $this->estimation->update(['setup_id' => $setup->id]);
+        $this->estimation->refresh();
 
         $this->showSetupModal = false;
         $this->newSetup = [
@@ -444,7 +483,7 @@ class EstimationBuilder extends Component
 
     public function toggleSetupEditing()
     {
-        $this->isSetupEditing = !$this->isSetupEditing;
+        $this->isSetupEditing = ! $this->isSetupEditing;
     }
 
     public function updateSetupValue($setupId, $field, $value)
@@ -462,13 +501,13 @@ class EstimationBuilder extends Component
         $addonsQuery = Option::query();
 
         if ($this->project_type_id) {
-            $blocksQuery->where(function($q) {
+            $blocksQuery->where(function ($q) {
                 $q->where('project_type_id', $this->project_type_id)
-                  ->orWhereNull('project_type_id');
+                    ->orWhereNull('project_type_id');
             });
-            $addonsQuery->where(function($q) {
+            $addonsQuery->where(function ($q) {
                 $q->where('project_type_id', $this->project_type_id)
-                  ->orWhereNull('project_type_id');
+                    ->orWhereNull('project_type_id');
             });
         } else {
             $blocksQuery->whereNull('project_type_id');
@@ -477,26 +516,26 @@ class EstimationBuilder extends Component
 
         // Filtre selon le type d'estimation et le taux horaire
         if ($this->type === 'fixed') {
-            if (!$this->hourly_rate) {
+            if (! $this->hourly_rate) {
                 $blocksQuery->where('type_unit', 'fixed');
                 $addonsQuery->whereIn('type', ['fixed_price', 'percentage']);
             }
         } else { // hour
-            if (!$this->hourly_rate) {
+            if (! $this->hourly_rate) {
                 $blocksQuery->where('type_unit', 'hour');
                 $addonsQuery->whereIn('type', ['fixed_hours', 'percentage']);
             }
         }
 
         if ($this->blockSearch) {
-            $blocksQuery->where('name', 'like', '%' . $this->blockSearch . '%');
+            $blocksQuery->where('name', 'like', '%'.$this->blockSearch.'%');
         }
 
         return view('livewire.estimation-builder', [
-            'setups' => Setup::where(function($q) {
+            'setups' => Setup::where('user_id', auth()->id())->where(function ($q) {
                 if ($this->project_type_id) {
                     $q->where('project_type_id', $this->project_type_id)
-                      ->orWhereNull('project_type_id');
+                        ->orWhereNull('project_type_id');
                 } else {
                     $q->whereNull('project_type_id');
                 }

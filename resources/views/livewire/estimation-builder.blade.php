@@ -73,7 +73,7 @@
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-md" x-data="{ showProject: @js(!empty($project_name)), showHourlyRate: @js(!empty($hourly_rate)) }">
-            <h2 class="text-xl font-semibold mb-4 text-blue-800 border-b pb-2 flex items-center">
+            <h2 class="text-xl font-semibold mb-4 text-blue-800 dark:text-blue-400 border-b dark:border-gray-700 pb-2 flex items-center">
                 <x-fas-cog class="w-5 h-5 mr-2" />
                 1. Configuration du Projet
             </h2>
@@ -229,7 +229,7 @@
         <!-- Zone B: Header, Pages & Footer & Blocs -->
         <div class="space-y-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-blue-800 flex items-center">
+                <h2 class="text-xl font-semibold text-blue-800 dark:text-blue-400 flex items-center">
                     <x-fas-layer-group class="w-5 h-5 mr-2" />
                     2. Structure du site
                 </h2>
@@ -265,7 +265,7 @@
             $canTranslate = $plan ? $plan->has_translation_module : true;
         @endphp
         <div class="bg-white p-6 rounded-lg shadow-md {{ !$canTranslate ? 'opacity-75 relative' : '' }}">
-            <h2 class="text-xl font-semibold mb-4 text-blue-800 border-b pb-2 flex items-center justify-between">
+            <h2 class="text-xl font-semibold mb-4 text-blue-800 dark:text-blue-400 border-b dark:border-gray-700 pb-2 flex items-center justify-between">
                 <div class="flex items-center">
                     <x-fas-plus-circle class="w-5 h-5 mr-2" />
                     3. Options & Traduction
@@ -384,7 +384,7 @@
     <!-- Sidebar: Totaux -->
     <div class="lg:col-span-1">
         <div class="bg-blue-900 text-white p-6 rounded-lg shadow-lg sticky top-8">
-            <h2 class="text-xl font-bold mb-6 border-b border-blue-800 pb-2 text-center flex items-center justify-center">
+            <h2 class="text-xl font-bold mb-6 border-b border-blue-800 pb-2 text-center flex items-center justify-center dark:text-gray-100">
                 <x-fas-calculator class="w-5 h-5 mr-2" />
                 Récapitulatif
             </h2>
@@ -453,7 +453,7 @@
     @if($showBlockModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4">
-                <h2 class="text-2xl font-bold mb-6 border-b pb-2">Créer un nouveau Bloc</h2>
+                <h2 class="text-2xl font-bold mb-6 border-b dark:border-gray-700 pb-2 dark:text-gray-100">Créer un nouveau Bloc</h2>
                 <form wire:submit.prevent="createBlock" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="col-span-2">
                         <label class="block text-sm font-bold text-gray-700">Nom</label>
@@ -508,7 +508,7 @@
             <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
                 <form wire:submit.prevent="createSetup">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg font-bold text-blue-800 border-b pb-2 mb-4">✨ Ajouter une nouvelle base technique</h3>
+                        <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 border-b dark:border-gray-700 pb-2 mb-4">✨ Ajouter une nouvelle base technique</h3>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Nom / Type de base</label>
