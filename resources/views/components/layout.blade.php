@@ -42,6 +42,11 @@
                             Estimations
                         </a>
 
+                        <a href="{{ route('templates.index') }}" class="flex items-center hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('templates.*') ? 'bg-blue-800' : '' }}">
+                            <x-fas-layer-group class="w-4 h-4 mr-2" />
+                            Gabarits
+                        </a>
+
                         @php
                             $inSettings = request()->routeIs('settings.*') || request()->routeIs('blocks.*');
                         @endphp
@@ -55,24 +60,24 @@
                             </button>
 
                             <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute left-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-slate-100 dark:border-gray-700 py-1 z-50" style="display: none;">
-                                <a href="{{ route('settings.project-types') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.project-types') ? 'bg-blue-50 text-blue-700 font-bold' : '' }}">
+                                <a href="{{ route('settings.project-types') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.project-types') ? 'bg-blue-50 dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold' : '' }}">
                                     <x-fas-microchip class="w-4 h-4 text-slate-400 dark:text-gray-500" />
                                     Types de Projet
                                 </a>
-                                <a href="{{ route('settings.setups') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.setups') ? 'bg-blue-50 text-blue-700 font-bold' : '' }}">
+                                <a href="{{ route('settings.setups') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.setups') ? 'bg-blue-50 dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold' : '' }}">
                                     <x-fas-cog class="w-4 h-4 text-slate-400 dark:text-gray-500" />
                                     Bases Techniques
                                 </a>
-                                <a href="{{ route('blocks.index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('blocks.*') ? 'bg-blue-50 text-blue-700 font-bold' : '' }}">
+                                <a href="{{ route('blocks.index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('blocks.*') ? 'bg-blue-50 dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold' : '' }}">
                                     <x-fas-cubes class="w-4 h-4 text-slate-400 dark:text-gray-500" />
                                     Catalogue de Blocs
                                 </a>
                                 <div class="my-1 border-t border-slate-100 dark:border-gray-700"></div>
-                                <a href="{{ route('settings.options') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.options') ? 'bg-blue-50 text-blue-700 font-bold' : '' }}">
+                                <a href="{{ route('settings.options') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.options') ? 'bg-blue-50 dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold' : '' }}">
                                     <x-fas-plus-circle class="w-4 h-4 text-slate-400 dark:text-gray-500" />
                                     Add-ons
                                 </a>
-                                <a href="{{ route('settings.translation') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.translation') ? 'bg-blue-50 text-blue-700 font-bold' : '' }}">
+                                <a href="{{ route('settings.translation') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 {{ request()->routeIs('settings.translation') ? 'bg-blue-50 dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold' : '' }}">
                                     <x-fas-language class="w-4 h-4 text-slate-400 dark:text-gray-500" />
                                     Traduction
                                 </a>

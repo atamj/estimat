@@ -2,7 +2,9 @@
 
 namespace App\Livewire;
 
+use App\Enums\Currency;
 use App\Models\Block;
+use App\Models\BlockPriceSet;
 use App\Models\ProjectType;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -11,41 +13,52 @@ class BlockManager extends Component
 {
     use WithPagination;
 
-    public $name;
+    public string $name = '';
 
-    public $description;
+    public string $description = '';
 
-    public $type_unit = 'hour';
+    public ?int $project_type_id = null;
 
-    public $price_programming = 0;
+    public ?int $editingBlockId = null;
 
-    public $price_integration = 0;
+    public bool $showForm = false;
 
-    public $price_field_creation = 0;
+    public string $filter_project_type = '';
 
-    public $price_content_management = 0;
+    /** @var array<int, array{currency: string, price_programming: float, price_integration: float, price_field_creation: float, price_content_management: float}> */
+    public array $priceSets = [];
 
-    public $project_type_id = null;
+    public bool $showHoursForm = false;
 
-    public $filter_project_type = '';
+    public bool $showPriceSetForm = false;
 
-    public $editingBlockId = null;
+    public string $newPriceSetCurrency = 'EUR';
 
-    public $showForm = false;
+    /** @var array{price_programming: string, price_integration: string, price_field_creation: string, price_content_management: string} */
+    public array $newPriceSetValues = [
+        'price_programming' => '',
+        'price_integration' => '',
+        'price_field_creation' => '',
+        'price_content_management' => '',
+    ];
+
+    /** @var array{price_programming: string, price_integration: string, price_field_creation: string, price_content_management: string} */
+    public array $newHoursValues = [
+        'price_programming' => '',
+        'price_integration' => '',
+        'price_field_creation' => '',
+        'price_content_management' => '',
+    ];
 
     protected $rules = [
         'name' => 'required|min:3',
-        'type_unit' => 'required|in:hour,fixed',
-        'price_programming' => 'required|numeric|min:0',
-        'price_integration' => 'required|numeric|min:0',
-        'price_field_creation' => 'required|numeric|min:0',
-        'price_content_management' => 'required|numeric|min:0',
         'project_type_id' => 'nullable|exists:project_types,id',
     ];
 
     public function mount(): void
     {
         $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
+        $this->initNewPriceSetCurrency();
     }
 
     public function updatedFilterProjectType(): void
@@ -53,7 +66,7 @@ class BlockManager extends Component
         $this->resetPage();
     }
 
-    public function save()
+    public function save(): void
     {
         $this->validate();
 
@@ -74,45 +87,131 @@ class BlockManager extends Component
             'user_id' => $user?->id,
             'name' => $this->name,
             'description' => $this->description,
-            'type_unit' => $this->type_unit,
-            'price_programming' => $this->price_programming,
-            'price_integration' => $this->price_integration,
-            'price_field_creation' => $this->price_field_creation,
-            'price_content_management' => $this->price_content_management,
             'project_type_id' => $this->project_type_id ?: null,
         ];
 
         if ($this->editingBlockId) {
-            Block::findOrFail($this->editingBlockId)->update($data);
+            $block = Block::findOrFail($this->editingBlockId);
+            $block->update($data);
         } else {
-            Block::create($data);
+            $block = Block::create($data);
+        }
+
+        // Sync price sets
+        $block->priceSets()->delete();
+        foreach ($this->priceSets as $setData) {
+            BlockPriceSet::create(array_merge(['block_id' => $block->id], $setData));
         }
 
         $this->resetFields();
         session()->flash('message', $this->editingBlockId ? 'Bloc mis à jour.' : 'Bloc créé.');
     }
 
-    public function edit($id)
+    public function addHours(): void
     {
-        $block = Block::findOrFail($id);
+        $this->validate([
+            'newHoursValues.price_programming' => 'required|numeric|min:0',
+            'newHoursValues.price_integration' => 'required|numeric|min:0',
+            'newHoursValues.price_field_creation' => 'required|numeric|min:0',
+            'newHoursValues.price_content_management' => 'required|numeric|min:0',
+        ]);
+
+        $this->priceSets = array_filter($this->priceSets, fn ($s) => $s['currency'] !== 'HOUR');
+        $this->priceSets = array_values($this->priceSets);
+        $this->priceSets[] = array_merge(['currency' => 'HOUR'], array_map('floatval', $this->newHoursValues));
+
+        $this->showHoursForm = false;
+        $this->newHoursValues = ['price_programming' => '', 'price_integration' => '', 'price_field_creation' => '', 'price_content_management' => ''];
+    }
+
+    public function addPriceSet(): void
+    {
+        $this->validate([
+            'newPriceSetValues.price_programming' => 'required|numeric|min:0',
+            'newPriceSetValues.price_integration' => 'required|numeric|min:0',
+            'newPriceSetValues.price_field_creation' => 'required|numeric|min:0',
+            'newPriceSetValues.price_content_management' => 'required|numeric|min:0',
+        ]);
+
+        $usedCurrencies = array_column($this->priceSets, 'currency');
+        if (in_array($this->newPriceSetCurrency, $usedCurrencies)) {
+            $this->addError('newPriceSetCurrency', 'Un prix existe déjà pour cette devise.');
+
+            return;
+        }
+
+        $this->priceSets[] = array_merge(['currency' => $this->newPriceSetCurrency], array_map('floatval', $this->newPriceSetValues));
+        $this->showPriceSetForm = false;
+        $this->newPriceSetValues = ['price_programming' => '', 'price_integration' => '', 'price_field_creation' => '', 'price_content_management' => ''];
+        $this->initNewPriceSetCurrency();
+    }
+
+    public function removePriceSet(int $index): void
+    {
+        unset($this->priceSets[$index]);
+        $this->priceSets = array_values($this->priceSets);
+        $this->initNewPriceSetCurrency();
+    }
+
+    public function initNewPriceSetCurrency(): void
+    {
+        $usedCurrencies = array_column($this->priceSets, 'currency');
+        $userDefault = auth()->user()?->default_currency ?? 'EUR';
+
+        if (! in_array($userDefault, $usedCurrencies)) {
+            $this->newPriceSetCurrency = $userDefault;
+
+            return;
+        }
+
+        foreach (Currency::cases() as $currency) {
+            if (! in_array($currency->value, $usedCurrencies)) {
+                $this->newPriceSetCurrency = $currency->value;
+
+                return;
+            }
+        }
+    }
+
+    public function availableCurrencies(): array
+    {
+        $usedCurrencies = array_column($this->priceSets, 'currency');
+
+        return array_filter(Currency::cases(), fn ($c) => ! in_array($c->value, $usedCurrencies));
+    }
+
+    public function hasHoursSet(): bool
+    {
+        return collect($this->priceSets)->contains('currency', 'HOUR');
+    }
+
+    public function edit(int $id): void
+    {
+        $block = Block::with('priceSets')->findOrFail($id);
         $this->editingBlockId = $id;
         $this->name = $block->name;
-        $this->description = $block->description;
-        $this->type_unit = $block->type_unit;
-        $this->price_programming = $block->price_programming;
-        $this->price_integration = $block->price_integration;
-        $this->price_field_creation = $block->price_field_creation;
-        $this->price_content_management = $block->price_content_management;
+        $this->description = $block->description ?? '';
         $this->project_type_id = $block->project_type_id;
+        $this->priceSets = $block->priceSets->map(fn ($s) => [
+            'currency' => $s->currency,
+            'price_programming' => $s->price_programming,
+            'price_integration' => $s->price_integration,
+            'price_field_creation' => $s->price_field_creation,
+            'price_content_management' => $s->price_content_management,
+        ])->toArray();
         $this->showForm = true;
+        $this->showHoursForm = false;
+        $this->showPriceSetForm = false;
+        $this->initNewPriceSetCurrency();
     }
 
-    public function delete($id): void
+    public function delete(int $id): void
     {
         Block::findOrFail($id)->delete();
+        session()->flash('message', 'Bloc supprimé.');
     }
 
-    public function duplicate($id)
+    public function duplicate(int $id): void
     {
         $user = auth()->user();
         $subscription = $user?->activeSubscription;
@@ -127,19 +226,32 @@ class BlockManager extends Component
             }
         }
 
-        $block = Block::findOrFail($id);
+        $block = Block::with('priceSets')->findOrFail($id);
         $newBlock = $block->replicate();
         $newBlock->name .= ' (Copie)';
         $newBlock->save();
 
+        foreach ($block->priceSets as $priceSet) {
+            BlockPriceSet::create([
+                'block_id' => $newBlock->id,
+                'currency' => $priceSet->currency,
+                'price_programming' => $priceSet->price_programming,
+                'price_integration' => $priceSet->price_integration,
+                'price_field_creation' => $priceSet->price_field_creation,
+                'price_content_management' => $priceSet->price_content_management,
+            ]);
+        }
+
         session()->flash('message', 'Bloc dupliqué avec succès.');
     }
 
-    public function resetFields()
+    public function resetFields(): void
     {
-        $this->reset(['name', 'description', 'type_unit', 'price_programming', 'price_integration', 'price_field_creation', 'price_content_management', 'editingBlockId', 'project_type_id', 'showForm']);
-        $this->type_unit = 'hour';
+        $this->reset(['name', 'description', 'project_type_id', 'editingBlockId', 'showForm', 'showHoursForm', 'showPriceSetForm', 'priceSets', 'newPriceSetValues', 'newHoursValues']);
         $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
+        $this->newPriceSetValues = ['price_programming' => '', 'price_integration' => '', 'price_field_creation' => '', 'price_content_management' => ''];
+        $this->newHoursValues = ['price_programming' => '', 'price_integration' => '', 'price_field_creation' => '', 'price_content_management' => ''];
+        $this->initNewPriceSetCurrency();
     }
 
     public function render(): \Illuminate\View\View
@@ -156,8 +268,9 @@ class BlockManager extends Component
         }
 
         return view('livewire.block-manager', [
-            'blocks' => $query->with('projectType')->orderBy('name')->paginate(15),
+            'blocks' => $query->with(['projectType', 'priceSets'])->orderBy('name')->paginate(15),
             'projectTypes' => ProjectType::where('user_id', auth()->id())->get(),
+            'currencies' => Currency::cases(),
         ]);
     }
 }

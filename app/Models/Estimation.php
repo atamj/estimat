@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
+use App\Enums\Currency;
 use App\Services\EstimationCalculator;
+use Illuminate\Database\Eloquent\Model;
 
 class Estimation extends Model
 {
@@ -22,6 +22,7 @@ class Estimation extends Model
         'translation_percentage',
         'translation_languages_count',
         'project_type_id',
+        'currency',
     ];
 
     protected $casts = [
@@ -34,25 +35,35 @@ class Estimation extends Model
         'project_type_id' => 'integer',
     ];
 
+    public function getCurrencySymbolAttribute(): string
+    {
+        $enum = Currency::tryFrom($this->currency ?? 'EUR');
+
+        return $enum?->symbol() ?? '€';
+    }
+
     public function getTotalPriceAttribute()
     {
-        $calculator = new EstimationCalculator();
+        $calculator = new EstimationCalculator;
         $totals = $calculator->calculateTotals($this);
+
         return $totals['total_price'];
     }
 
     public function getTotalTimeAttribute()
     {
-        $calculator = new EstimationCalculator();
+        $calculator = new EstimationCalculator;
         $totals = $calculator->calculateTotals($this);
+
         return $totals['total_time'];
     }
 
     public function getHasContentAttribute()
     {
-        $calculator = new EstimationCalculator();
+        $calculator = new EstimationCalculator;
         $totals = $calculator->calculateTotals($this);
-        return ($totals['total_price'] > 0 || ($this->type === 'hour' && $totals['total_time'] > 0));
+
+        return $totals['total_price'] > 0 || ($this->type === 'hour' && $totals['total_time'] > 0);
     }
 
     public function user()

@@ -51,7 +51,7 @@
                         <div style="color: #475569; margin-top: 5px;">Technologie: {{ $estimation->projectType->name }}</div>
                     @endif
                     @if($estimation->hourly_rate)
-                        <div style="color: #475569; margin-top: 5px;">Taux horaire: {{ $estimation->hourly_rate }} €/h</div>
+                        <div style="color: #475569; margin-top: 5px;">Taux horaire: {{ $estimation->hourly_rate }} {{ $estimation->currency_symbol }}/h</div>
                     @endif
                 </div>
             </td>
@@ -171,13 +171,13 @@
             @if($estimation->hourly_rate)
                 <div style="margin-top: 10px; background: #ecfdf5; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #d1fae5;">
                     <span style="font-size: 12px; font-weight: bold; color: #059669; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Montant Total H.T.</span>
-                    <span class="grand-total">{{ number_format($totals['total_price'], 2) }} €</span>
+                    <span class="grand-total">{{ number_format($totals['total_price'], 2) }} {{ $estimation->currency_symbol }}</span>
                 </div>
             @endif
         @else
             <div style="margin-top: 10px; background: #ecfdf5; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #d1fae5;">
                 <span style="font-size: 12px; font-weight: bold; color: #059669; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Total Forfait H.T.</span>
-                <span class="grand-total">{{ number_format($totals['total_price'], 2) }} €</span>
+                <span class="grand-total">{{ number_format($totals['total_price'], 2) }} {{ $estimation->currency_symbol }}</span>
             </div>
         @endif
     </div>

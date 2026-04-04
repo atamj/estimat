@@ -1,4 +1,4 @@
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8" x-data="{ showSaveAsTemplateModal: false, templateName: '' }">
     <div class="lg:col-span-2 space-y-8">
         <!-- Bandeau d'infos Technologie et Type (Statique) -->
         <div class="bg-blue-900 text-white p-4 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-4">
@@ -63,13 +63,19 @@
                 </div>
             </div>
 
-            <!-- Bouton PDF rapide -->
-            @if((isset($totals['total_price']) && $totals['total_price'] > 0) || (isset($totals['total_time']) && $totals['total_time'] > 0 && $type === 'hour'))
-                <a href="{{ route('estimations.pdf', $estimation) }}" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-bold text-sm flex items-center transition-colors">
-                    <x-fas-file-pdf class="w-4 h-4 mr-2" />
-                    Aperçu PDF
-                </a>
-            @endif
+            <!-- Actions rapides -->
+            <div class="flex items-center gap-2">
+                <button @click="showSaveAsTemplateModal = true; templateName = ''" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-bold text-sm flex items-center transition-colors">
+                    <x-fas-layer-group class="w-4 h-4 mr-2" />
+                    Sauver comme gabarit
+                </button>
+                @if((isset($totals['total_price']) && $totals['total_price'] > 0) || (isset($totals['total_time']) && $totals['total_time'] > 0 && $type === 'hour'))
+                    <a href="{{ route('estimations.pdf', $estimation) }}" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-bold text-sm flex items-center transition-colors">
+                        <x-fas-file-pdf class="w-4 h-4 mr-2" />
+                        Aperçu PDF
+                    </a>
+                @endif
+            </div>
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-md" x-data="{ showProject: @js(!empty($project_name)), showHourlyRate: @js(!empty($hourly_rate)) }">
@@ -139,24 +145,14 @@
                                 </p>
                                 <div class="grid grid-cols-1 gap-4">
                                     @if($type == 'fixed')
+                                    @php $setupPrice = $currentSetup->load('prices')->priceForCurrency($estimation->currency ?? 'EUR'); @endphp
                                     <div class="bg-white p-3 rounded-lg border-2 border-blue-500 shadow-sm">
                                         <label class="block text-[10px] uppercase tracking-wider font-black text-blue-700">Prix Forfaitaire</label>
-                                        @if($currentSetup->fixed_price > 0 && !$isSetupEditing)
-                                            <div class="text-lg font-black text-blue-900">{{ number_format($currentSetup->fixed_price, 2) }} €</div>
-                                            <span class="text-[9px] text-blue-500 font-bold uppercase">Tarif standard (verrouillé)</span>
+                                        @if($setupPrice > 0)
+                                            <div class="text-lg font-black text-blue-900">{{ number_format($setupPrice, 2) }} {{ $currencySymbol }}</div>
+                                            <span class="text-[9px] text-blue-500 font-bold uppercase">Tarif standard</span>
                                         @else
-                                            <div class="relative mt-1">
-                                                <input type="number" step="0.01"
-                                                       value="{{ $currentSetup->fixed_price }}"
-                                                       onchange="@this.updateSetupValue({{ $currentSetup->id }}, 'fixed_price', this.value)"
-                                                       class="block w-full border-2 border-blue-300 rounded-md shadow-sm text-sm p-2 pl-7 focus:border-blue-500 bg-white">
-                                                <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-blue-400 font-bold">€</div>
-                                            </div>
-                                            @if($currentSetup->fixed_price > 0)
-                                                <span class="text-[9px] text-blue-500 font-bold uppercase">Modification temporaire autorisée</span>
-                                            @else
-                                                <span class="text-[9px] text-orange-500 font-bold uppercase">Non défini - Saisissez une valeur</span>
-                                            @endif
+                                            <span class="text-[9px] text-orange-500 font-bold uppercase">Non défini pour cette devise — configurez dans les bases techniques</span>
                                         @endif
                                     </div>
                                     @endif
@@ -326,7 +322,7 @@
                                     <div class="relative mt-1">
                                         <input type="number" step="0.01" wire:model.blur="translation_fixed_price"
                                                class="block w-full border-2 border-blue-300 rounded-md shadow-sm text-sm p-2 pl-7 focus:border-blue-500 bg-white">
-                                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-blue-400 font-bold">€</div>
+                                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-blue-400 font-bold">{{ $currencySymbol }}</div>
                                     </div>
                                 </div>
                                 @endif
@@ -366,7 +362,7 @@
                                 <div class="text-sm font-bold">{{ $addon->name }}</div>
                                 <div class="text-xs {{ $estimation->addons->contains($addon->id) ? 'text-blue-100' : 'text-gray-500' }}">
                                     @if($addon->type == 'fixed_price')
-                                        {{ $addon->value }} €
+                                        {{ $addon->value }} {{ $currencySymbol }}
                                     @elseif($addon->type == 'fixed_hours')
                                         {{ $addon->value }} h
                                     @else
@@ -428,13 +424,13 @@
                         @if($estimation->hourly_rate)
                             <div class="flex justify-between text-2xl font-black text-green-400 mt-2">
                                 <span>Total Prix :</span>
-                                <span>{{ number_format($totals['total_price'], 2) }} €</span>
+                                <span>{{ number_format($totals['total_price'], 2) }} {{ $currencySymbol }}</span>
                             </div>
                         @endif
                     @else
                         <div class="flex justify-between text-2xl font-black text-green-400">
                             <span>Total Prix :</span>
-                            <span>{{ number_format($totals['total_price'], 2) }} €</span>
+                            <span>{{ number_format($totals['total_price'], 2) }} {{ $currencySymbol }}</span>
                         </div>
                     @endif
                 </div>
@@ -449,52 +445,67 @@
         </div>
     </div>
 
+    <!-- Modal Sauvegarder comme gabarit -->
+    <div x-show="showSaveAsTemplateModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md mx-4" @click.stop>
+            <h2 class="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100 flex items-center">
+                <x-fas-layer-group class="w-5 h-5 mr-2 text-purple-600" />
+                Sauvegarder comme gabarit
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">La structure (pages, blocs, add-ons) sera copiée dans un nouveau gabarit réutilisable.</p>
+            <form method="POST" action="{{ route('estimations.save-as-template', $estimation) }}" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Nom du gabarit <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" x-model="templateName" required
+                           placeholder="ex: Landing Page, E-commerce..."
+                           class="w-full border-2 border-gray-300 dark:border-gray-600 rounded-lg p-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-purple-500">
+                    @error('name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @click="showSaveAsTemplateModal = false"
+                            class="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 font-bold transition-colors">
+                        Créer le gabarit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Nouveau Bloc -->
     @if($showBlockModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4">
-                <h2 class="text-2xl font-bold mb-6 border-b dark:border-gray-700 pb-2 dark:text-gray-100">Créer un nouveau Bloc</h2>
-                <form wire:submit.prevent="createBlock" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="block text-sm font-bold text-gray-700">Nom</label>
-                        <input type="text" wire:model="newBlock.name" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-lg mx-4">
+                <h2 class="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">Créer un nouveau Bloc</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Les tarifs seront configurés dans <strong>Paramètres → Blocs</strong>.</p>
+                <form wire:submit.prevent="createBlock" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Nom <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="newBlock.name" placeholder="ex: Page d'accueil, Menu de navigation..."
+                               class="w-full border-2 border-gray-300 dark:border-gray-600 rounded-lg p-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500">
                         @error('newBlock.name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700">Type de Projet</label>
-                        <select wire:model="newBlock.project_type_id" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
-                            <option value="">Générique (aucun)</option>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Technologie</label>
+                        <select wire:model="newBlock.project_type_id"
+                                class="w-full border-2 border-gray-300 dark:border-gray-600 rounded-lg p-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500">
+                            <option value="">Générique (toutes technologies)</option>
                             @foreach($projectTypes as $pt)
                                 <option value="{{ $pt->id }}">{{ $pt->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Type d'unité</label>
-                        <select wire:model="newBlock.type_unit" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
-                            <option value="hour">Heure</option>
-                            <option value="fixed">Forfait</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Prog. (Fixe)</label>
-                        <input type="number" step="0.01" wire:model="newBlock.price_programming" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Inté. (Fixe)</label>
-                        <input type="number" step="0.01" wire:model="newBlock.price_integration" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Champs (Variable)</label>
-                        <input type="number" step="0.01" wire:model="newBlock.price_field_creation" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Contenu (Variable)</label>
-                        <input type="number" step="0.01" wire:model="newBlock.price_content_management" class="mt-1 block w-full border-2 border-gray-300 rounded-md p-2 focus:border-blue-500">
-                    </div>
-                    <div class="col-span-2 flex justify-end space-x-3 mt-6">
-                        <button type="button" wire:click="$set('showBlockModal', false)" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
-                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Créer le Bloc</button>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" wire:click="$set('showBlockModal', false)"
+                                class="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors">
+                            Annuler
+                        </button>
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-bold transition-colors">
+                            Créer le Bloc
+                        </button>
                     </div>
                 </form>
             </div>
@@ -518,7 +529,7 @@
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700">Prix Forfaitaire (€)</label>
+                                    <label class="block text-sm font-bold text-gray-700">Prix Forfaitaire ({{ $currencySymbol }})</label>
                                     <input type="number" step="0.01" wire:model="newSetup.fixed_price" class="mt-1 block w-full border-2 border-gray-300 rounded-md shadow-sm p-2">
                                 </div>
                                 <div>

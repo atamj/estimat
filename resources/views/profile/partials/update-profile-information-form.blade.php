@@ -1,4 +1,5 @@
 <section>
+    @php use App\Enums\Currency; @endphp
     <header>
         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
             {{ __('Profile Information') }}
@@ -45,6 +46,24 @@
                     @endif
                 </div>
             @endif
+        </div>
+
+        <div>
+            <x-input-label for="default_currency" value="Devise par défaut" />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">Utilisée automatiquement à la création de chaque nouvelle estimation.</p>
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-1">
+                @foreach(Currency::cases() as $currency)
+                    <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30 transition-all">
+                        <input type="radio" name="default_currency" value="{{ $currency->value }}" class="sr-only"
+                               {{ old('default_currency', $user->default_currency ?? 'EUR') === $currency->value ? 'checked' : '' }}>
+                        <span class="flex flex-col items-center justify-center w-full gap-0.5">
+                            <span class="text-lg font-black text-gray-700 dark:text-gray-200">{{ $currency->symbol() }}</span>
+                            <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{{ $currency->value }}</span>
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+            <x-input-error class="mt-2" :messages="$errors->get('default_currency')" />
         </div>
 
         <div class="flex items-center gap-4">

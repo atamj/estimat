@@ -2,95 +2,183 @@
 
 namespace App\Livewire;
 
-use App\Models\Setup;
+use App\Enums\Currency;
 use App\Models\ProjectType;
+use App\Models\Setup;
+use App\Models\SetupPrice;
 use Livewire\Component;
 
 class SetupManager extends Component
 {
-    public $setups;
-    public $type, $fixed_price = 0, $fixed_hours = 0, $project_type_id = null;
-    public $editingSetupId = null;
-    public $showForm = false;
+    public string $type = '';
+
+    public ?float $fixed_hours = null;
+
+    public ?int $project_type_id = null;
+
+    public ?int $editingSetupId = null;
+
+    public bool $showForm = false;
+
+    public bool $showHoursField = false;
+
+    public bool $showPriceForm = false;
+
+    /** @var array<int, array{currency: string, price: float}> */
+    public array $prices = [];
+
+    public string $newPriceCurrency = 'EUR';
+
+    public string $newPriceAmount = '';
 
     protected $rules = [
         'type' => 'required|string|max:255',
-        'fixed_price' => 'required|numeric|min:0',
-        'fixed_hours' => 'required|numeric|min:0',
+        'fixed_hours' => 'nullable|numeric|min:0',
         'project_type_id' => 'nullable|exists:project_types,id',
     ];
 
-    public function mount()
+    public function mount(): void
     {
-        $this->loadSetups();
         $this->project_type_id = ProjectType::where('is_default', true)->value('id');
+        $this->initNewPriceCurrency();
     }
 
-    public function loadSetups()
-    {
-        $this->setups = Setup::where('user_id', auth()->id())->with('projectType')->get();
-    }
-
-    public function save()
+    public function save(): void
     {
         $this->validate();
 
         $data = [
             'type' => $this->type,
-            'fixed_price' => $this->fixed_price,
-            'fixed_hours' => $this->fixed_hours,
+            'fixed_hours' => $this->showHoursField ? ($this->fixed_hours ?? 0) : 0,
             'project_type_id' => $this->project_type_id ?: null,
             'user_id' => auth()->id(),
         ];
 
         if ($this->editingSetupId) {
-            Setup::where('user_id', auth()->id())->findOrFail($this->editingSetupId)->update($data);
+            $setup = Setup::where('user_id', auth()->id())->findOrFail($this->editingSetupId);
+            $setup->update($data);
         } else {
-            Setup::create($data);
+            $setup = Setup::create($data);
+        }
+
+        // Sync prices
+        $setup->prices()->delete();
+        foreach ($this->prices as $priceData) {
+            SetupPrice::create([
+                'setup_id' => $setup->id,
+                'currency' => $priceData['currency'],
+                'price' => $priceData['price'],
+            ]);
         }
 
         $this->resetFields();
-        $this->loadSetups();
+        session()->flash('message', $this->editingSetupId ? 'Base technique mise à jour.' : 'Base technique créée.');
     }
 
-    public function edit($id)
+    public function addPrice(): void
     {
-        $setup = Setup::where('user_id', auth()->id())->findOrFail($id);
+        $this->validate([
+            'newPriceAmount' => 'required|numeric|min:0.01',
+        ]);
+
+        $usedCurrencies = array_column($this->prices, 'currency');
+        if (in_array($this->newPriceCurrency, $usedCurrencies)) {
+            $this->addError('newPriceCurrency', 'Un prix existe déjà pour cette devise.');
+
+            return;
+        }
+
+        $this->prices[] = ['currency' => $this->newPriceCurrency, 'price' => (float) $this->newPriceAmount];
+        $this->showPriceForm = false;
+        $this->newPriceAmount = '';
+        $this->initNewPriceCurrency();
+    }
+
+    public function removePrice(int $index): void
+    {
+        unset($this->prices[$index]);
+        $this->prices = array_values($this->prices);
+        $this->initNewPriceCurrency();
+    }
+
+    public function initNewPriceCurrency(): void
+    {
+        $usedCurrencies = array_column($this->prices, 'currency');
+        $userDefault = auth()->user()?->default_currency ?? 'EUR';
+
+        if (! in_array($userDefault, $usedCurrencies)) {
+            $this->newPriceCurrency = $userDefault;
+
+            return;
+        }
+
+        foreach (Currency::cases() as $currency) {
+            if (! in_array($currency->value, $usedCurrencies)) {
+                $this->newPriceCurrency = $currency->value;
+
+                return;
+            }
+        }
+    }
+
+    public function availableCurrencies(): array
+    {
+        $usedCurrencies = array_column($this->prices, 'currency');
+
+        return array_filter(Currency::cases(), fn ($c) => ! in_array($c->value, $usedCurrencies));
+    }
+
+    public function edit(int $id): void
+    {
+        $setup = Setup::where('user_id', auth()->id())->with('prices')->findOrFail($id);
         $this->editingSetupId = $id;
         $this->type = $setup->type;
-        $this->fixed_price = $setup->fixed_price;
-        $this->fixed_hours = $setup->fixed_hours;
+        $this->fixed_hours = $setup->fixed_hours > 0 ? $setup->fixed_hours : null;
+        $this->showHoursField = $setup->fixed_hours > 0;
         $this->project_type_id = $setup->project_type_id;
+        $this->prices = $setup->prices->map(fn ($p) => ['currency' => $p->currency, 'price' => $p->price])->toArray();
         $this->showForm = true;
+        $this->showPriceForm = false;
+        $this->initNewPriceCurrency();
     }
 
-    public function delete($id)
+    public function delete(int $id): void
     {
         Setup::where('user_id', auth()->id())->findOrFail($id)->delete();
-        $this->loadSetups();
+        session()->flash('message', 'Base technique supprimée.');
     }
 
-    public function duplicate($id)
+    public function duplicate(int $id): void
     {
-        $setup = Setup::where('user_id', auth()->id())->findOrFail($id);
+        $setup = Setup::where('user_id', auth()->id())->with('prices')->findOrFail($id);
         $newSetup = $setup->replicate();
         $newSetup->type .= ' (Copie)';
         $newSetup->save();
 
-        $this->loadSetups();
+        foreach ($setup->prices as $price) {
+            SetupPrice::create([
+                'setup_id' => $newSetup->id,
+                'currency' => $price->currency,
+                'price' => $price->price,
+            ]);
+        }
+
         session()->flash('message', 'Base technique dupliquée avec succès.');
     }
 
-    public function resetFields()
+    public function resetFields(): void
     {
-        $this->reset(['type', 'fixed_price', 'fixed_hours', 'project_type_id', 'editingSetupId', 'showForm']);
+        $this->reset(['type', 'fixed_hours', 'project_type_id', 'editingSetupId', 'showForm', 'showHoursField', 'showPriceForm', 'prices', 'newPriceAmount']);
         $this->project_type_id = ProjectType::where('is_default', true)->value('id');
+        $this->initNewPriceCurrency();
     }
 
-    public function render()
+    public function render(): \Illuminate\View\View
     {
         return view('livewire.setup-manager', [
-            'projectTypes' => ProjectType::where('user_id', auth()->id())->get()
+            'setups' => Setup::where('user_id', auth()->id())->with(['projectType', 'prices'])->get(),
+            'projectTypes' => ProjectType::where('user_id', auth()->id())->get(),
+            'currencies' => Currency::cases(),
         ]);
     }
 }

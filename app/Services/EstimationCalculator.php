@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Estimation;
 use App\Models\Block;
+use App\Models\Estimation;
 
 class EstimationCalculator
 {
@@ -23,12 +23,16 @@ class EstimationCalculator
 
         // 1. Setup
         if ($estimation->setup) {
+            $estimation->setup->load('prices');
             if ($estimation->type === 'hour') {
                 $totals['setup'] = (float) ($estimation->setup->fixed_hours ?? 0);
             } else {
-                $totals['setup'] = (float) ($estimation->setup->fixed_price ?? 0);
+                $totals['setup'] = $estimation->setup->priceForCurrency($estimation->currency ?? 'EUR');
             }
         }
+
+        // Determine the currency key for block price lookup
+        $currencyKey = $estimation->type === 'hour' ? 'HOUR' : ($estimation->currency ?? 'EUR');
 
         // 2. Identify unique blocks for Programming + Integration
         $uniqueBlockIds = [];
@@ -39,7 +43,6 @@ class EstimationCalculator
             foreach ($page->blocks as $block) {
                 $uniqueBlockIds[] = $block->id;
 
-                // On clone l'instance pour pouvoir y attacher la quantité de la page sans modifier le modèle original
                 $instance = clone $block;
                 $instance->page_quantity = $pageQty;
                 $blockInstances[] = $instance;
@@ -50,12 +53,10 @@ class EstimationCalculator
 
         // Count Programming + Integration only once per block type
         foreach ($uniqueBlockIds as $blockId) {
-            $block = Block::find($blockId);
-            // Check if there is an override in ANY instance of this block in the estimation
-            // The plan says: "Programmation + Intégration ne sont comptés qu’une seule fois par bloc"
-            // We take the default block values for these.
-            $totals['programming'] += (float) $block->price_programming;
-            $totals['integration'] += (float) $block->price_integration;
+            $block = Block::with('priceSets')->find($blockId);
+            $priceSet = $block->priceSetFor($currencyKey);
+            $totals['programming'] += (float) ($priceSet?->price_programming ?? 0);
+            $totals['integration'] += (float) ($priceSet?->price_integration ?? 0);
         }
 
         // 3. Calculate Field Creation + Content Management for each instance
@@ -63,11 +64,10 @@ class EstimationCalculator
             $qty = (int) $instance->pivot->quantity;
             $pageQty = (int) $instance->page_quantity;
 
-            $field_creation = $instance->price_field_creation;
-            $content_management = $instance->price_content_management;
+            $priceSet = $instance->priceSetFor($currencyKey);
+            $field_creation = $priceSet?->price_field_creation ?? 0;
+            $content_management = $priceSet?->price_content_management ?? 0;
 
-            // On multiplie par la quantité de blocs sur la page.
-            // Seule la gestion de contenu est multipliée par le nombre de pages similaires.
             $totals['field_creation'] += (float) $field_creation * $qty;
             $totals['content_management'] += (float) $content_management * $qty * $pageQty;
         }
@@ -124,7 +124,7 @@ class EstimationCalculator
                 'type' => $addon->type,
                 'value' => $addon->value,
                 'calculated_value' => $value,
-                'calculation_base' => $addon->calculation_base
+                'calculation_base' => $addon->calculation_base,
             ];
         }
         $totals['addon_details'] = $addonDetails;

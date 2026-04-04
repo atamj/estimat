@@ -10,20 +10,25 @@ class Block extends Model
         'user_id',
         'name',
         'description',
-        'type_unit',
-        'price_programming',
-        'price_integration',
-        'price_field_creation',
-        'price_content_management',
         'project_type_id',
     ];
 
-    public function projectType()
+    public function priceSets(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BlockPriceSet::class);
+    }
+
+    public function priceSetFor(string $currency): ?BlockPriceSet
+    {
+        return $this->priceSets->firstWhere('currency', $currency);
+    }
+
+    public function projectType(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ProjectType::class);
     }
 
-    public function pages()
+    public function pages(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(Page::class, 'page_block')
             ->using(PageBlock::class)

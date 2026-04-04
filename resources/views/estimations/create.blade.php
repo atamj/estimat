@@ -1,15 +1,55 @@
 <x-layout>
     <x-slot:title>Nouvelle Estimation</x-slot:title>
 
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-2xl mx-auto space-y-6" x-data="{ selectedTemplate: null, selectedTemplateName: '' }">
+        @if($templates->isNotEmpty())
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border-t-4 border-purple-600">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 dark:text-gray-100 flex items-center">
+                    <x-fas-layer-group class="w-5 h-5 mr-2 text-purple-600" />
+                    Partir d'un gabarit
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @foreach($templates as $template)
+                        <button type="button"
+                            @click="selectedTemplate = selectedTemplate === {{ $template->id }} ? null : {{ $template->id }}; selectedTemplateName = '{{ addslashes($template->name) }}'"
+                            :class="selectedTemplate === {{ $template->id }} ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'"
+                            class="w-full text-left p-4 rounded-lg border-2 transition-all group relative">
+                            <div class="font-bold text-gray-900 dark:text-gray-100 group-hover:text-purple-700 dark:group-hover:text-purple-300">{{ $template->name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-3">
+                                @if($template->projectType)
+                                    <span>{{ $template->projectType->name }}</span>
+                                @endif
+                                <span>{{ $template->regularPages->count() }} page(s)</span>
+                                <span>{{ $template->pages->flatMap->blocks->count() }} bloc(s)</span>
+                            </div>
+                            <x-fas-check x-show="selectedTemplate === {{ $template->id }}" class="absolute top-3 right-3 w-4 h-4 text-purple-600" />
+                        </button>
+                    @endforeach
+                </div>
+                <p class="mt-3 text-xs text-gray-400 dark:text-gray-500 italic">
+                    Sélectionnez un gabarit pour pré-remplir la structure de la nouvelle estimation.
+                    <a href="{{ route('templates.index') }}" class="text-purple-600 hover:underline ml-1">Gérer les gabarits</a>
+                </p>
+            </div>
+        @endif
+
         <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md border-t-4 border-blue-600">
             <h1 class="text-2xl font-bold mb-8 text-gray-800 dark:text-gray-100 flex items-center">
                 <x-fas-file-invoice class="w-6 h-6 mr-3 text-blue-600" />
                 Nouvelle Estimation
             </h1>
 
+            <div x-show="selectedTemplate" x-cloak x-transition class="mb-6 flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-4 py-3">
+                <x-fas-layer-group class="w-4 h-4 shrink-0" />
+                <span>Gabarit sélectionné : <strong x-text="selectedTemplateName"></strong></span>
+                <button type="button" @click="selectedTemplate = null" class="ml-auto text-purple-400 hover:text-purple-600">
+                    <x-fas-times class="w-3 h-3" />
+                </button>
+            </div>
+
             <form action="{{ route('estimations.store') }}" method="POST" class="space-y-8">
                 @csrf
+                <input type="hidden" name="template_id" :value="selectedTemplate">
 
                 <div>
                     <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Technologie / Type de Projet</label>
@@ -64,6 +104,22 @@
                             </span>
                         </label>
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Devise</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        @foreach($currencies as $currency)
+                            <label class="relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30 transition-all">
+                                <input type="radio" name="currency" value="{{ $currency->value }}" class="sr-only" {{ $currency->value === $defaultCurrency ? 'checked' : '' }}>
+                                <span class="flex flex-col items-center justify-center w-full gap-0.5">
+                                    <span class="text-lg font-black text-gray-700 dark:text-gray-200">{{ $currency->symbol() }}</span>
+                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{{ $currency->value }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('currency') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4">

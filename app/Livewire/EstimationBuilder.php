@@ -42,6 +42,8 @@ class EstimationBuilder extends Component
 
     public $totals;
 
+    public string $currencySymbol = '€';
+
     public $blockSearch = '';
 
     // Champs de verrouillage
@@ -59,11 +61,6 @@ class EstimationBuilder extends Component
     public $newBlock = [
         'name' => '',
         'description' => '',
-        'type_unit' => 'hour',
-        'price_programming' => 0,
-        'price_integration' => 0,
-        'price_field_creation' => 0,
-        'price_content_management' => 0,
         'project_type_id' => null,
     ];
 
@@ -112,6 +109,8 @@ class EstimationBuilder extends Component
         $this->translation_fixed_hours = $estimation->translation_fixed_hours;
         $this->translation_percentage = $estimation->translation_percentage;
         $this->translation_languages_count = $estimation->translation_languages_count ?? 1;
+
+        $this->currencySymbol = $estimation->currency_symbol;
 
         $this->checkTranslationLock();
 
@@ -443,16 +442,7 @@ class EstimationBuilder extends Component
 
         $this->showBlockModal = false;
         $this->selectedPageIdForNewBlock = null;
-        $this->reset('newBlock');
-        $this->newBlock = [
-            'name' => '',
-            'description' => '',
-            'type_unit' => 'hour',
-            'price_programming' => 0,
-            'price_integration' => 0,
-            'price_field_creation' => 0,
-            'price_content_management' => 0,
-        ];
+        $this->newBlock = ['name' => '', 'description' => '', 'project_type_id' => null];
 
         $this->dispatch('block-created');
     }
@@ -486,11 +476,11 @@ class EstimationBuilder extends Component
         $this->isSetupEditing = ! $this->isSetupEditing;
     }
 
-    public function updateSetupValue($setupId, $field, $value)
+    public function updateSetupValue($setupId, string $field, $value): void
     {
         $setup = Setup::find($setupId);
-        if ($setup) {
-            $setup->update([$field => $value]);
+        if ($setup && $field === 'fixed_hours') {
+            $setup->update(['fixed_hours' => $value]);
             $this->calculate();
         }
     }
@@ -515,14 +505,13 @@ class EstimationBuilder extends Component
         }
 
         // Filtre selon le type d'estimation et le taux horaire
-        if ($this->type === 'fixed') {
-            if (! $this->hourly_rate) {
-                $blocksQuery->where('type_unit', 'fixed');
+        if (! $this->hourly_rate) {
+            $currencyKey = $this->type === 'hour' ? 'HOUR' : ($this->estimation->currency ?? 'EUR');
+            $blocksQuery->whereHas('priceSets', fn ($q) => $q->where('currency', $currencyKey));
+
+            if ($this->type === 'fixed') {
                 $addonsQuery->whereIn('type', ['fixed_price', 'percentage']);
-            }
-        } else { // hour
-            if (! $this->hourly_rate) {
-                $blocksQuery->where('type_unit', 'hour');
+            } else {
                 $addonsQuery->whereIn('type', ['fixed_hours', 'percentage']);
             }
         }

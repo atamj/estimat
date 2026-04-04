@@ -91,10 +91,14 @@
                         <label class="block text-[10px] uppercase tracking-wider font-black text-gray-500 mb-1">Total ligne</label>
                         <div class="text-lg font-bold text-blue-600">
                             @php
-                                $sub = $block->price_field_creation + $block->price_content_management;
+                                $blockCurrencyKey = $type === 'hour' ? 'HOUR' : ($estimation->currency ?? 'EUR');
+                                $blockUnit = $type === 'hour' ? 'h' : $currencySymbol;
+                                $block->load('priceSets');
+                                $blockPs = $block->priceSetFor($blockCurrencyKey);
+                                $sub = ($blockPs?->price_field_creation ?? 0) + ($blockPs?->price_content_management ?? 0);
                                 $lineTotal = $sub * $block->pivot->quantity;
                             @endphp
-                            {{ number_format($lineTotal, 2) }}{{ $block->type_unit == 'hour' ? 'h' : '€' }}
+                            {{ number_format($lineTotal, 2) }}{{ $blockUnit }}
                         </div>
                     </div>
                 </div>
@@ -102,10 +106,11 @@
                 <div class="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                     <div>
                         <span class="font-bold">Détails Catalogue :</span>
-                        Intégration: {{ $block->price_integration }}{{ $block->type_unit == 'hour' ? 'h' : '€' }} |
-                        Prog: {{ $block->price_programming }}{{ $block->type_unit == 'hour' ? 'h' : '€' }} |
-                        Champs: {{ $block->price_field_creation }}{{ $block->type_unit == 'hour' ? 'h' : '€' }} |
-                        Contenu: {{ $block->price_content_management }}{{ $block->type_unit == 'hour' ? 'h' : '€' }}
+                        Prog: {{ $blockPs?->price_programming ?? 0 }}{{ $blockUnit }} |
+                        Inté: {{ $blockPs?->price_integration ?? 0 }}{{ $blockUnit }} |
+                        Champs: {{ $blockPs?->price_field_creation ?? 0 }}{{ $blockUnit }} |
+                        Contenu: {{ $blockPs?->price_content_management ?? 0 }}{{ $blockUnit }}
+                        @if(!$blockPs) <span class="text-amber-500 font-bold">⚠ Aucun tarif pour cette devise</span> @endif
                     </div>
                 </div>
             </div>
