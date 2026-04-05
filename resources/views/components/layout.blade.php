@@ -35,8 +35,12 @@
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center space-x-8">
-                    <a href="{{ route('estimations.index') }}" class="text-xl font-black tracking-tighter">ESTIMAT</a>
+                    <a href="{{ route('dashboard') }}" class="text-xl font-black tracking-tighter">ESTIMAT</a>
                     <div class="hidden md:flex space-x-1">
+                        <a href="{{ route('dashboard') }}" class="flex items-center hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-blue-800' : '' }}">
+                            <x-fas-chart-line class="w-4 h-4 mr-2" />
+                            Dashboard
+                        </a>
                         <a href="{{ route('estimations.index') }}" class="flex items-center hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('estimations.*') ? 'bg-blue-800' : '' }}">
                             <x-fas-file-invoice class="w-4 h-4 mr-2" />
                             Estimations

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BlockController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimationController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ProfileController;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::resource('blocks', BlockController::class);
     Route::resource('estimations', EstimationController::class);
     Route::post('estimations/{estimation}/duplicate', [EstimationController::class, 'duplicate'])->name('estimations.duplicate');
