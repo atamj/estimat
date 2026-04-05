@@ -13,8 +13,12 @@ return new class extends Migration
     {
         Schema::create('translation_configs', function (Blueprint $table) {
             $table->id();
-            $table->decimal('default_fixed_amount', 10, 2)->default(0);
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->decimal('default_fixed_price', 10, 2)->default(0);
+            $table->decimal('default_fixed_hours', 10, 2)->default(0);
             $table->decimal('default_percentage', 5, 2)->default(0);
+            $table->string('default_type')->default('fixed');
+            $table->foreignId('project_type_id')->nullable()->constrained('project_types')->nullOnDelete();
             $table->timestamps();
         });
     }

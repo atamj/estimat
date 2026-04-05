@@ -13,16 +13,10 @@ return new class extends Migration
     {
         Schema::create('blocks', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('project_type_id')->nullable()->constrained('project_types')->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->enum('type_unit', ['hour', 'fixed'])->default('hour');
-
-            // Temps ou Prix selon type_unit
-            $table->decimal('price_programming', 10, 2)->default(0);
-            $table->decimal('price_integration', 10, 2)->default(0);
-            $table->decimal('price_field_creation', 10, 2)->default(0);
-            $table->decimal('price_content_management', 10, 2)->default(0);
-
             $table->timestamps();
         });
     }

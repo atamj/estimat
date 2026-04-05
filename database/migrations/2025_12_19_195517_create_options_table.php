@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('options', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->enum('type', ['fixed_price', 'fixed_hours', 'percentage'])->default('fixed_price');
@@ -22,8 +23,9 @@ return new class extends Migration
                 'blocks',
                 'pages',
                 'content',
-                'content_fields'
-            ])->nullable(); // Obligatoire si type = percentage
+                'content_fields',
+            ])->nullable();
+            $table->foreignId('project_type_id')->nullable()->constrained('project_types')->nullOnDelete();
             $table->timestamps();
         });
     }

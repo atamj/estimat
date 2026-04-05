@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('pages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('estimation_id')->constrained()->onDelete('cascade');
+            $table->string('type')->default('regular');
             $table->string('name');
+            $table->integer('quantity')->default(1);
             $table->integer('order')->default(0);
             $table->timestamps();
         });

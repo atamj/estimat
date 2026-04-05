@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('setups', function (Blueprint $table) {
             $table->id();
-            $table->string('type'); // nouveau, interne, externe
-            $table->decimal('amount', 10, 2)->default(0); // temps ou prix
+            $table->foreignId('project_type_id')->nullable()->constrained('project_types')->nullOnDelete();
+            $table->string('type');
+            $table->float('fixed_hours')->default(0);
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }
