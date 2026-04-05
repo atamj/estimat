@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedToAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProjectType extends Model
 {
+    use ScopedToAuthenticatedUser;
+
     protected $fillable = ['name', 'icon', 'description', 'is_default', 'user_id'];
 
     protected $casts = [

@@ -11,25 +11,18 @@ class EstimationList extends Component
 
     public function render()
     {
-        $user = auth()->user();
-        $query = Estimation::query();
-
-        if ($user) {
-            $query->where('user_id', $user->id);
-        }
-
-        $estimations = $query
+        $estimations = Estimation::query()
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('client_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('project_name', 'like', '%' . $this->search . '%');
+                    $q->where('client_name', 'like', '%'.$this->search.'%')
+                        ->orWhere('project_name', 'like', '%'.$this->search.'%');
                 });
             })
             ->orderBy('created_at', 'desc')
             ->get();
 
         return view('livewire.estimation-list', [
-            'estimations' => $estimations
+            'estimations' => $estimations,
         ]);
     }
 

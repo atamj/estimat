@@ -9,6 +9,7 @@ use App\Models\Setup;
 use App\Models\Template;
 use App\Models\TemplatePage;
 use App\Models\TemplatePageBlock;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class TemplateBuilder extends Component
@@ -276,12 +277,7 @@ class TemplateBuilder extends Component
             'newBlock.name' => 'required|min:3',
         ]);
 
-        $user = auth()->user();
-        if (! $user) {
-            return;
-        }
-
-        $data = array_merge($this->newBlock, ['user_id' => $user->id]);
+        $data = array_merge($this->newBlock, ['user_id' => Auth::id()]);
         $block = Block::create($data);
 
         if ($this->selectedPageIdForNewBlock) {
@@ -301,7 +297,7 @@ class TemplateBuilder extends Component
             'newSetup.type' => 'required|min:3',
         ]);
 
-        $setup = Setup::create(array_merge($this->newSetup, ['user_id' => auth()->id()]));
+        $setup = Setup::create(array_merge($this->newSetup, ['user_id' => Auth::id()]));
 
         $this->setup_id = $setup->id;
         $this->template->update(['setup_id' => $setup->id]);
@@ -334,7 +330,7 @@ class TemplateBuilder extends Component
     public function render(): \Illuminate\View\View
     {
         $blocksQuery = Block::query();
-        $addonsQuery = Option::query()->where('user_id', $this->template->user_id);
+        $addonsQuery = Option::query();
 
         if ($this->project_type_id) {
             $blocksQuery->where(function ($q) {
@@ -355,7 +351,7 @@ class TemplateBuilder extends Component
         }
 
         return view('livewire.template-builder', [
-            'setups' => Setup::where('user_id', auth()->id())->where(function ($q) {
+            'setups' => Setup::query()->where(function ($q) {
                 if ($this->project_type_id) {
                     $q->where('project_type_id', $this->project_type_id)
                         ->orWhereNull('project_type_id');

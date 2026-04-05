@@ -4,14 +4,27 @@ namespace App\Livewire;
 
 use App\Models\Option;
 use App\Models\ProjectType;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class OptionManager extends Component
 {
     public $options;
-    public $name, $description, $type = 'fixed_price', $value = 0, $calculation_base = 'global';
+
+    public $name;
+
+    public $description;
+
+    public $type = 'fixed_price';
+
+    public $value = 0;
+
+    public $calculation_base = 'global';
+
     public $project_type_id = null;
+
     public $editingOptionId = null;
+
     public $showForm = false;
 
     protected $rules = [
@@ -30,7 +43,7 @@ class OptionManager extends Component
 
     public function loadOptions()
     {
-        $this->options = Option::where('user_id', auth()->id())->with('projectType')->get();
+        $this->options = Option::with('projectType')->get();
     }
 
     public function save()
@@ -44,11 +57,11 @@ class OptionManager extends Component
             'value' => $this->value,
             'calculation_base' => $this->type === 'percentage' ? $this->calculation_base : null,
             'project_type_id' => $this->project_type_id ?: null,
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
         ];
 
         if ($this->editingOptionId) {
-            Option::where('user_id', auth()->id())->findOrFail($this->editingOptionId)->update($data);
+            Option::findOrFail($this->editingOptionId)->update($data);
         } else {
             Option::create($data);
         }
@@ -61,12 +74,12 @@ class OptionManager extends Component
     {
         $this->reset(['name', 'description', 'type', 'value', 'calculation_base', 'editingOptionId', 'project_type_id', 'showForm']);
         $this->type = 'fixed_price';
-        $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
+        $this->project_type_id = ProjectType::where('is_default', true)->value('id');
     }
 
     public function edit($id)
     {
-        $option = Option::where('user_id', auth()->id())->findOrFail($id);
+        $option = Option::findOrFail($id);
         $this->editingOptionId = $id;
         $this->name = $option->name;
         $this->description = $option->description;
@@ -79,13 +92,13 @@ class OptionManager extends Component
 
     public function delete($id)
     {
-        Option::where('user_id', auth()->id())->findOrFail($id)->delete();
+        Option::findOrFail($id)->delete();
         $this->loadOptions();
     }
 
     public function duplicate($id)
     {
-        $option = Option::where('user_id', auth()->id())->findOrFail($id);
+        $option = Option::findOrFail($id);
         $newOption = $option->replicate();
         $newOption->name .= ' (Copy)';
         $newOption->save();
@@ -97,7 +110,7 @@ class OptionManager extends Component
     public function render()
     {
         return view('livewire.option-manager', [
-            'projectTypes' => ProjectType::where('user_id', auth()->id())->get()
+            'projectTypes' => ProjectType::all(),
         ]);
     }
 }

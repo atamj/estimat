@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Currency;
+use App\Models\Concerns\ScopedToAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Template extends Model
 {
+    use ScopedToAuthenticatedUser;
+
     protected $fillable = [
         'user_id',
         'name',

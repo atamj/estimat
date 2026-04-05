@@ -2,23 +2,23 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-
-use App\Models\Estimation;
 use App\Models\Block;
+use App\Models\Estimation;
 use App\Models\Plan;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class SubscriptionManager extends Component
 {
     public function render()
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $subscription = $user->activeSubscription;
         $plan = $subscription ? $subscription->plan : null;
 
         $usage = [
-            'estimations' => Estimation::where('user_id', $user->id)->count(),
-            'blocks' => Block::where('user_id', $user->id)->count(),
+            'estimations' => Estimation::count(),
+            'blocks' => Block::query()->count(),
         ];
 
         $availablePlans = Plan::where('is_active', true)->get();

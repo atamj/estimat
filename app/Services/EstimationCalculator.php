@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Block;
 use App\Models\Estimation;
+use App\Models\Scopes\OwnedByAuthenticatedUserScope;
 
 class EstimationCalculator
 {
@@ -56,7 +57,15 @@ class EstimationCalculator
 
         // Count Programming + Integration only once per block type
         foreach ($uniqueBlockIds as $blockId) {
-            $block = Block::with('priceSets')->find($blockId);
+            $block = Block::withoutGlobalScope(OwnedByAuthenticatedUserScope::class)
+                ->where('user_id', $estimation->user_id)
+                ->with('priceSets')
+                ->find($blockId);
+
+            if ($block === null) {
+                continue;
+            }
+
             $priceSet = $block->priceSetFor($currencyKey);
 
             // Fallback to HOUR price sets if no matching currency price set

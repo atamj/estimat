@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedToAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 
 class Option extends Model
 {
+    use ScopedToAuthenticatedUser;
+
     protected $fillable = [
         'name',
         'description',

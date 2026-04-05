@@ -10,6 +10,9 @@ use App\Models\ProjectType;
 use App\Models\Setup;
 use App\Models\TranslationConfig;
 use App\Services\EstimationCalculator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class EstimationBuilder extends Component
@@ -137,9 +140,18 @@ class EstimationBuilder extends Component
         $this->validateOnly($propertyName);
 
         $fields = [
-            'client_name', 'project_name', 'hourly_rate', 'type', 'setup_id', 'project_type_id',
-            'translation_enabled', 'translation_type', 'translation_fixed_price', 'translation_fixed_hours',
-            'translation_percentage', 'translation_languages_count',
+            'client_name',
+            'project_name',
+            'hourly_rate',
+            'type',
+            'setup_id',
+            'project_type_id',
+            'translation_enabled',
+            'translation_type',
+            'translation_fixed_price',
+            'translation_fixed_hours',
+            'translation_percentage',
+            'translation_languages_count',
         ];
 
         if (in_array($propertyName, $fields)) {
@@ -151,7 +163,7 @@ class EstimationBuilder extends Component
                 $this->{$propertyName} = null;
             }
 
-            $user = auth()->user();
+            $user = Auth::user();
             $subscription = $user?->activeSubscription;
             $plan = $subscription?->plan;
 
@@ -198,8 +210,7 @@ class EstimationBuilder extends Component
             return;
         }
 
-        $config = TranslationConfig::where('user_id', $userId)
-            ->where('project_type_id', $this->project_type_id)
+        $config = TranslationConfig::where('project_type_id', $this->project_type_id)
             ->first();
         if (! $config && ! $this->project_type_id) {
             $config = TranslationConfig::where('user_id', $userId)
@@ -363,7 +374,7 @@ class EstimationBuilder extends Component
 
     public function updatePivot($pivotId, $field, $value)
     {
-        \DB::table('page_block')->where('id', $pivotId)->update([$field => $value]);
+        DB::table('page_block')->where('id', $pivotId)->update([$field => $value]);
         $this->estimation->refresh();
         $this->calculate();
     }
@@ -382,7 +393,7 @@ class EstimationBuilder extends Component
         }
 
         $pages = $this->estimation->regularPages;
-        $currentIndex = $pages->search(fn ($p) => $p->id === $pageId);
+        $currentIndex = $pages->search(fn($p) => $p->id === $pageId);
 
         if ($direction === 'up' && $currentIndex > 0) {
             $otherPage = $pages[$currentIndex - 1];
@@ -407,7 +418,7 @@ class EstimationBuilder extends Component
         }
 
         $blocks = $page->blocks()->orderBy('page_block.order')->get();
-        $currentIndex = $blocks->search(fn ($b) => $b->pivot->id == $pivotId);
+        $currentIndex = $blocks->search(fn($b) => $b->pivot->id == $pivotId);
 
         if ($direction === 'up' && $currentIndex > 0) {
             $otherBlock = $blocks[$currentIndex - 1];
@@ -418,8 +429,8 @@ class EstimationBuilder extends Component
         }
 
         $oldOrder = $blocks[$currentIndex]->pivot->order;
-        \DB::table('page_block')->where('id', $pivotId)->update(['order' => $otherBlock->pivot->order]);
-        \DB::table('page_block')->where('id', $otherBlock->pivot->id)->update(['order' => $oldOrder]);
+        DB::table('page_block')->where('id', $pivotId)->update(['order' => $otherBlock->pivot->order]);
+        DB::table('page_block')->where('id', $otherBlock->pivot->id)->update(['order' => $oldOrder]);
 
         $this->estimation->refresh();
     }
@@ -451,16 +462,12 @@ class EstimationBuilder extends Component
             'newBlock.name' => 'required|min:3',
         ]);
 
-        $user = auth()->user();
-        if (! $user) {
-            return;
-        }
-
+        $user = Auth::user();
         $subscription = $user->activeSubscription;
         $plan = $subscription?->plan;
 
         if ($plan && $plan->max_blocks !== -1) {
-            $count = Block::where('user_id', $user->id)->count();
+            $count = Block::query()->count();
             if ($count >= $plan->max_blocks) {
                 $this->addError('newBlock.name', 'Vous avez atteint la limite de blocs de votre plan.');
 
@@ -488,7 +495,7 @@ class EstimationBuilder extends Component
             'newSetup.type' => 'required|min:3',
         ]);
 
-        $setup = Setup::create(array_merge($this->newSetup, ['user_id' => auth()->id()]));
+        $setup = Setup::create(array_merge($this->newSetup, ['user_id' => Auth::id()]));
 
         $this->setup_id = $setup->id;
         $this->estimation->update(['setup_id' => $setup->id]);
@@ -525,13 +532,6 @@ class EstimationBuilder extends Component
         $blocksQuery = Block::query();
         $addonsQuery = Option::query();
 
-        $addonUserId = $this->estimation->user_id ?? auth()->id();
-        if ($addonUserId) {
-            $addonsQuery->where('user_id', $addonUserId);
-        } else {
-            $addonsQuery->whereRaw('1 = 0');
-        }
-
         if ($this->project_type_id) {
             $blocksQuery->where(function ($q) {
                 $q->where('project_type_id', $this->project_type_id)
@@ -554,11 +554,11 @@ class EstimationBuilder extends Component
         }
 
         if ($this->blockSearch) {
-            $blocksQuery->where('name', 'like', '%'.$this->blockSearch.'%');
+            $blocksQuery->where('name', 'like', '%' . $this->blockSearch . '%');
         }
 
         return view('livewire.estimation-builder', [
-            'setups' => Setup::where('user_id', auth()->id())->where(function ($q) {
+            'setups' => Setup::query()->where(function ($q) {
                 if ($this->project_type_id) {
                     $q->where('project_type_id', $this->project_type_id)
                         ->orWhereNull('project_type_id');

@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\User;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -13,8 +14,11 @@ class UserManager extends Component
     use WithPagination;
 
     public $search = '';
+
     public $editingUserId = null;
+
     public $role_admin = false;
+
     public $selectedPlanId = null;
 
     protected $queryString = ['search'];
@@ -45,13 +49,13 @@ class UserManager extends Component
         // mais l'admin doit pouvoir gérer les autres.
 
         $user->update([
-            'is_admin' => $this->role_admin
+            'is_admin' => $this->role_admin,
         ]);
 
         // Gestion manuelle de l'abonnement si changé
         if ($this->selectedPlanId) {
             $currentPlan = $user->activePlan;
-            if (!$currentPlan || $currentPlan->id != $this->selectedPlanId) {
+            if (! $currentPlan || $currentPlan->id != $this->selectedPlanId) {
                 // On annule l'ancien et on crée un nouveau
                 $user->subscriptions()->where('status', 'active')->update(['status' => 'cancelled', 'cancelled_at' => now()]);
 
@@ -72,8 +76,9 @@ class UserManager extends Component
 
     public function deleteUser($userId)
     {
-        if ($userId == auth()->id()) {
+        if ($userId == Auth::id()) {
             session()->flash('error', 'Vous ne pouvez pas supprimer votre propre compte.');
+
             return;
         }
 
@@ -83,14 +88,14 @@ class UserManager extends Component
 
     public function render()
     {
-        $users = User::where('name', 'like', '%' . $this->search . '%')
-            ->orWhere('email', 'like', '%' . $this->search . '%')
+        $users = User::where('name', 'like', '%'.$this->search.'%')
+            ->orWhere('email', 'like', '%'.$this->search.'%')
             ->latest()
             ->paginate(10);
 
         return view('livewire.admin.user-manager', [
             'users' => $users,
-            'plans' => Plan::all()
+            'plans' => Plan::all(),
         ]);
     }
 }

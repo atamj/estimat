@@ -11,6 +11,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class EstimationController extends Controller
 {
@@ -23,8 +24,8 @@ class EstimationController extends Controller
     {
         $projectTypes = \App\Models\ProjectType::all();
         $currencies = Currency::cases();
-        $defaultCurrency = auth()->user()?->default_currency ?? 'EUR';
-        $templates = Template::where('user_id', auth()->id())
+        $defaultCurrency = Auth::user()?->default_currency ?? 'EUR';
+        $templates = Template::query()
             ->with(['projectType', 'pages.blocks'])
             ->latest()
             ->get();
@@ -39,7 +40,7 @@ class EstimationController extends Controller
             'project_name' => 'nullable|string|max:255',
             'project_type_id' => 'nullable|exists:project_types,id',
             'type' => 'required|in:hour,fixed',
-            'currency' => 'required|in:'.implode(',', array_column(Currency::cases(), 'value')),
+            'currency' => 'required|in:' . implode(',', array_column(Currency::cases(), 'value')),
             'template_id' => 'nullable|exists:templates,id',
         ]);
 
@@ -47,13 +48,11 @@ class EstimationController extends Controller
         $user = $request->user();
         $config = null;
         if ($user) {
-            $config = TranslationConfig::where('user_id', $user->id)
-                ->where('project_type_id', $projectTypeId)
+            $config = TranslationConfig::where('project_type_id', $projectTypeId)
                 ->first();
 
             if (! $config && $projectTypeId) {
-                $config = TranslationConfig::where('user_id', $user->id)
-                    ->whereNull('project_type_id')
+                $config = TranslationConfig::whereNull('project_type_id')
                     ->first();
             }
         }
@@ -62,7 +61,7 @@ class EstimationController extends Controller
             $plan = $subscription?->plan;
 
             if ($plan && $plan->max_estimations !== -1) {
-                $count = \App\Models\Estimation::where('user_id', $user->id)->count();
+                $count = Estimation::count();
                 if ($count >= $plan->max_estimations) {
                     return redirect()->route('estimations.index')->with('error', 'Vous avez atteint la limite d\'estimations de votre plan.');
                 }
@@ -83,7 +82,7 @@ class EstimationController extends Controller
         ]);
 
         $template = $request->template_id
-            ? Template::where('id', $request->template_id)->where('user_id', $user?->id)->first()
+            ? Template::where('id', $request->template_id)->first()
             : null;
 
         if ($template) {
@@ -116,18 +115,13 @@ class EstimationController extends Controller
             $estimation->pages()->create(['name' => 'Site Footer', 'type' => 'footer', 'order' => 99, 'quantity' => 1]);
         }
 
-        $message = $template ? 'Estimation créée depuis le gabarit « '.$template->name.' ».' : null;
+        $message = $template ? 'Estimation créée depuis le gabarit « ' . $template->name . ' ».' : null;
 
         return redirect()->route('estimations.builder', $estimation)->with('message', $message);
     }
 
     public function builder(Estimation $estimation)
     {
-        $user = auth()->user();
-        if ($user && $estimation->user_id !== $user->id) {
-            abort(403);
-        }
-
         return view('estimations.builder', compact('estimation'));
     }
 
@@ -141,10 +135,6 @@ class EstimationController extends Controller
 
     public function destroy(Estimation $estimation)
     {
-        $user = auth()->user();
-        if ($user && $estimation->user_id !== $user->id) {
-            abort(403);
-        }
         $estimation->delete();
 
         return redirect()->route('estimations.index')->with('message', 'Estimation supprimée avec succès.');
@@ -152,12 +142,12 @@ class EstimationController extends Controller
 
     public function duplicate(Estimation $estimation)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $subscription = $user?->activeSubscription;
         $plan = $subscription?->plan;
 
         if ($plan && $plan->max_estimations !== -1) {
-            $count = \App\Models\Estimation::where('user_id', $user->id)->count();
+            $count = Estimation::count();
             if ($count >= $plan->max_estimations) {
                 return redirect()->route('estimations.index')->with('error', 'Vous avez atteint la limite d\'estimations de votre plan.');
             }
@@ -195,10 +185,7 @@ class EstimationController extends Controller
 
     public function saveAsTemplate(Request $request, Estimation $estimation): RedirectResponse
     {
-        $user = auth()->user();
-        if ($user && $estimation->user_id !== $user->id) {
-            abort(403);
-        }
+        $user = Auth::user();
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -245,16 +232,11 @@ class EstimationController extends Controller
         }
 
         return redirect()->route('estimations.builder', $estimation)
-            ->with('message', 'Gabarit « '.$template->name.' » créé avec succès.');
+            ->with('message', 'Gabarit « ' . $template->name . ' » créé avec succès.');
     }
 
     public function exportPdf(Estimation $estimation)
     {
-        $user = auth()->user();
-        if ($user && $estimation->user_id !== $user->id) {
-            abort(403);
-        }
-
         $calculator = new EstimationCalculator;
         $totals = $calculator->calculateTotals($estimation);
 

@@ -8,13 +8,14 @@ use App\Models\Template;
 use App\Models\TranslationConfig;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class TemplateController extends Controller
 {
     public function index(): View
     {
-        $templates = Template::where('user_id', auth()->id())
+        $templates = Template::query()
             ->with(['projectType', 'pages'])
             ->latest()
             ->get();
@@ -26,7 +27,7 @@ class TemplateController extends Controller
     {
         $projectTypes = \App\Models\ProjectType::all();
         $currencies = Currency::cases();
-        $defaultCurrency = auth()->user()?->default_currency ?? 'EUR';
+        $defaultCurrency = Auth::user()?->default_currency ?? 'EUR';
 
         return view('templates.create', compact('projectTypes', 'currencies', 'defaultCurrency'));
     }
@@ -37,23 +38,20 @@ class TemplateController extends Controller
             'name' => 'required|string|max:255',
             'project_type_id' => 'nullable|exists:project_types,id',
             'type' => 'required|in:hour,fixed',
-            'currency' => 'required|in:'.implode(',', array_column(Currency::cases(), 'value')),
+            'currency' => 'required|in:' . implode(',', array_column(Currency::cases(), 'value')),
         ]);
 
         $projectTypeId = $request->project_type_id;
-        $userId = auth()->id();
-        $config = TranslationConfig::where('user_id', $userId)
-            ->where('project_type_id', $projectTypeId)
+        $config = TranslationConfig::where('project_type_id', $projectTypeId)
             ->first();
 
         if (! $config && $projectTypeId) {
-            $config = TranslationConfig::where('user_id', $userId)
-                ->whereNull('project_type_id')
+            $config = TranslationConfig::whereNull('project_type_id')
                 ->first();
         }
 
         $template = Template::create([
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'name' => $request->name,
             'project_type_id' => $projectTypeId,
             'type' => $request->type,
@@ -72,20 +70,11 @@ class TemplateController extends Controller
 
     public function builder(Template $template): View
     {
-        $user = auth()->user();
-        if ($user && $template->user_id !== $user->id) {
-            abort(403);
-        }
-
         return view('templates.builder', compact('template'));
     }
 
     public function destroy(Template $template): RedirectResponse
     {
-        $user = auth()->user();
-        if ($user && $template->user_id !== $user->id) {
-            abort(403);
-        }
         $template->delete();
 
         return redirect()->route('templates.index')->with('message', 'Gabarit supprimé avec succès.');
@@ -93,11 +82,6 @@ class TemplateController extends Controller
 
     public function duplicate(Template $template): RedirectResponse
     {
-        $user = auth()->user();
-        if ($user && $template->user_id !== $user->id) {
-            abort(403);
-        }
-
         $newTemplate = $template->replicate();
         $newTemplate->name .= ' (Copie)';
         $newTemplate->save();
@@ -129,16 +113,13 @@ class TemplateController extends Controller
 
     public function createEstimation(Template $template): RedirectResponse
     {
-        $user = auth()->user();
-        if ($user && $template->user_id !== $user->id) {
-            abort(403);
-        }
+        $user = Auth::user();
 
         $subscription = $user?->activeSubscription;
         $plan = $subscription?->plan;
 
         if ($plan && $plan->max_estimations !== -1) {
-            $count = Estimation::where('user_id', $user->id)->count();
+            $count = Estimation::count();
             if ($count >= $plan->max_estimations) {
                 return redirect()->route('estimations.create')->with('error', 'Vous avez atteint la limite d\'estimations de votre plan.');
             }
@@ -184,6 +165,6 @@ class TemplateController extends Controller
             $estimation->addons()->attach($addon->id);
         }
 
-        return redirect()->route('estimations.builder', $estimation)->with('message', 'Estimation créée depuis le gabarit « '.$template->name.' ».');
+        return redirect()->route('estimations.builder', $estimation)->with('message', 'Estimation créée depuis le gabarit « ' . $template->name . ' ».');
     }
 }

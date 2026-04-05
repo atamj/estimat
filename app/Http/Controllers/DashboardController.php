@@ -15,7 +15,6 @@ class DashboardController extends Controller
         $calculator = new EstimationCalculator;
 
         $estimations = Estimation::query()
-            ->where('user_id', $user->id)
             ->with([
                 'projectType',
                 'setup.prices',
@@ -64,9 +63,7 @@ class DashboardController extends Controller
         $subscription = $user->activeSubscription()->with('plan')->first();
         $plan = $subscription?->plan;
 
-        $customBlocksCount = Block::query()
-            ->where('user_id', $user->id)
-            ->count();
+        $customBlocksCount = Block::query()->count();
 
         return view('dashboard', compact(
             'user',

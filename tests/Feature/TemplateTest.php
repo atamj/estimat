@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Block;
 use App\Models\Estimation;
 use App\Models\Option;
+use App\Models\Scopes\OwnedByAuthenticatedUserScope;
 use App\Models\Template;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -106,7 +107,7 @@ class TemplateTest extends TestCase
 
         $this->actingAs($otherUser)
             ->get(route('templates.builder', $template))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_user_can_delete_their_template(): void
@@ -127,9 +128,9 @@ class TemplateTest extends TestCase
 
         $this->actingAs($otherUser)
             ->delete(route('templates.destroy', $template))
-            ->assertForbidden();
+            ->assertNotFound();
 
-        $this->assertNotNull(Template::find($template->id));
+        $this->assertNotNull(Template::withoutGlobalScope(OwnedByAuthenticatedUserScope::class)->find($template->id));
     }
 
     public function test_user_can_duplicate_a_template(): void
@@ -269,7 +270,7 @@ class TemplateTest extends TestCase
 
         $this->actingAs($otherUser)
             ->post(route('estimations.save-as-template', $estimation), ['name' => 'Gabarit volé'])
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseMissing('templates', ['name' => 'Gabarit volé']);
     }

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedToAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 
 class TranslationConfig extends Model
 {
+    use ScopedToAuthenticatedUser;
+
     protected $fillable = [
         'default_fixed_price',
         'default_fixed_hours',

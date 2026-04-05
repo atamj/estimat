@@ -6,6 +6,7 @@ use App\Enums\Currency;
 use App\Models\ProjectType;
 use App\Models\Setup;
 use App\Models\SetupPrice;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class SetupManager extends Component
@@ -51,11 +52,11 @@ class SetupManager extends Component
             'type' => $this->type,
             'fixed_hours' => $this->showHoursField ? ($this->fixed_hours ?? 0) : 0,
             'project_type_id' => $this->project_type_id ?: null,
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
         ];
 
         if ($this->editingSetupId) {
-            $setup = Setup::where('user_id', auth()->id())->findOrFail($this->editingSetupId);
+            $setup = Setup::findOrFail($this->editingSetupId);
             $setup->update($data);
         } else {
             $setup = Setup::create($data);
@@ -104,7 +105,7 @@ class SetupManager extends Component
     public function initNewPriceCurrency(): void
     {
         $usedCurrencies = array_column($this->prices, 'currency');
-        $userDefault = auth()->user()?->default_currency ?? 'EUR';
+        $userDefault = Auth::user()?->default_currency ?? 'EUR';
 
         if (! in_array($userDefault, $usedCurrencies)) {
             $this->newPriceCurrency = $userDefault;
@@ -125,18 +126,18 @@ class SetupManager extends Component
     {
         $usedCurrencies = array_column($this->prices, 'currency');
 
-        return array_filter(Currency::cases(), fn ($c) => ! in_array($c->value, $usedCurrencies));
+        return array_filter(Currency::cases(), fn($c) => ! in_array($c->value, $usedCurrencies));
     }
 
     public function edit(int $id): void
     {
-        $setup = Setup::where('user_id', auth()->id())->with('prices')->findOrFail($id);
+        $setup = Setup::with('prices')->findOrFail($id);
         $this->editingSetupId = $id;
         $this->type = $setup->type;
         $this->fixed_hours = $setup->fixed_hours > 0 ? $setup->fixed_hours : null;
         $this->showHoursField = $setup->fixed_hours > 0;
         $this->project_type_id = $setup->project_type_id;
-        $this->prices = $setup->prices->map(fn ($p) => ['currency' => $p->currency, 'price' => $p->price])->toArray();
+        $this->prices = $setup->prices->map(fn($p) => ['currency' => $p->currency, 'price' => $p->price])->toArray();
         $this->showForm = true;
         $this->showPriceForm = false;
         $this->initNewPriceCurrency();
@@ -144,13 +145,13 @@ class SetupManager extends Component
 
     public function delete(int $id): void
     {
-        Setup::where('user_id', auth()->id())->findOrFail($id)->delete();
+        Setup::findOrFail($id)->delete();
         session()->flash('message', 'Base technique supprimée.');
     }
 
     public function duplicate(int $id): void
     {
-        $setup = Setup::where('user_id', auth()->id())->with('prices')->findOrFail($id);
+        $setup = Setup::with('prices')->findOrFail($id);
         $newSetup = $setup->replicate();
         $newSetup->type .= ' (Copie)';
         $newSetup->save();
@@ -176,8 +177,8 @@ class SetupManager extends Component
     public function render(): \Illuminate\View\View
     {
         return view('livewire.setup-manager', [
-            'setups' => Setup::where('user_id', auth()->id())->with(['projectType', 'prices'])->get(),
-            'projectTypes' => ProjectType::where('user_id', auth()->id())->get(),
+            'setups' => Setup::with(['projectType', 'prices'])->get(),
+            'projectTypes' => ProjectType::all(),
             'currencies' => Currency::cases(),
         ]);
     }

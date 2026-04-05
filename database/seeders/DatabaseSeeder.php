@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Auth;
 
 class DatabaseSeeder extends Seeder
 {
@@ -24,6 +26,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminUserSeeder::class,
+        ]);
+
+        $admin = User::query()->where('email', AdminUserSeeder::ADMIN_EMAIL)->firstOrFail();
+        Auth::loginUsingId($admin->id);
+
+        $this->call([
             AdminProjectTypeSeeder::class,
             AdminSetupSeeder::class,
             AdminBlockSeeder::class,

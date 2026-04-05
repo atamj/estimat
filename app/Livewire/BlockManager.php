@@ -6,6 +6,7 @@ use App\Enums\Currency;
 use App\Models\Block;
 use App\Models\BlockPriceSet;
 use App\Models\ProjectType;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -57,7 +58,7 @@ class BlockManager extends Component
 
     public function mount(): void
     {
-        $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
+        $this->project_type_id = ProjectType::where('is_default', true)->value('id');
         $this->initNewPriceSetCurrency();
     }
 
@@ -70,16 +71,12 @@ class BlockManager extends Component
     {
         $this->validate();
 
-        $user = auth()->user();
-        if (! $user) {
-            return;
-        }
-
+        $user = Auth::user();
         $subscription = $user->activeSubscription;
         $plan = $subscription?->plan;
 
         if (! $this->editingBlockId && $plan && $plan->max_blocks !== -1) {
-            $count = Block::where('user_id', $user->id)->count();
+            $count = Block::query()->count();
             if ($count >= $plan->max_blocks) {
                 session()->flash('error', 'Vous avez atteint la limite de blocs de votre plan.');
 
@@ -217,12 +214,12 @@ class BlockManager extends Component
 
     public function duplicate(int $id): void
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $subscription = $user?->activeSubscription;
         $plan = $subscription?->plan;
 
         if ($plan && $plan->max_blocks !== -1) {
-            $count = Block::where('user_id', $user->id)->count();
+            $count = Block::query()->count();
             if ($count >= $plan->max_blocks) {
                 session()->flash('error', 'Vous avez atteint la limite de blocs de votre plan.');
 
@@ -252,7 +249,7 @@ class BlockManager extends Component
     public function resetFields(): void
     {
         $this->reset(['name', 'description', 'project_type_id', 'editingBlockId', 'showForm', 'showHoursForm', 'showPriceSetForm', 'priceSets', 'newPriceSetValues', 'newHoursValues']);
-        $this->project_type_id = ProjectType::where('user_id', auth()->id())->where('is_default', true)->value('id');
+        $this->project_type_id = ProjectType::where('is_default', true)->value('id');
         $this->newPriceSetValues = ['price_programming' => '', 'price_integration' => '', 'price_field_creation' => '', 'price_content_management' => ''];
         $this->newHoursValues = ['price_programming' => '', 'price_integration' => '', 'price_field_creation' => '', 'price_content_management' => ''];
         $this->initNewPriceSetCurrency();
@@ -260,8 +257,7 @@ class BlockManager extends Component
 
     public function render(): \Illuminate\View\View
     {
-        $user = auth()->user();
-        $query = Block::query()->where('user_id', $user->id);
+        $query = Block::query();
 
         if ($this->filter_project_type !== '') {
             if ($this->filter_project_type === 'null') {
@@ -273,7 +269,7 @@ class BlockManager extends Component
 
         return view('livewire.block-manager', [
             'blocks' => $query->with(['projectType', 'priceSets'])->orderBy('name')->paginate(15),
-            'projectTypes' => ProjectType::where('user_id', auth()->id())->get(),
+            'projectTypes' => ProjectType::all(),
             'currencies' => Currency::cases(),
         ]);
     }

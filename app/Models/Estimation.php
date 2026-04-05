@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\Currency;
+use App\Models\Concerns\ScopedToAuthenticatedUser;
 use App\Services\EstimationCalculator;
 use Illuminate\Database\Eloquent\Model;
 
 class Estimation extends Model
 {
+    use ScopedToAuthenticatedUser;
+
     protected $fillable = [
         'user_id',
         'client_name',
