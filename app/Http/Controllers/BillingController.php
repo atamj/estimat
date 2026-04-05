@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
-use App\Models\Subscription;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -49,12 +49,13 @@ class BillingController extends Controller
         ];
 
         if ($billingCycle === 'lifetime') {
-            return $request->user()->checkout($stripePriceId, $checkoutOptions);
+            return $request->user()->checkout($stripePriceId, $checkoutOptions)->redirect();
         }
 
         // Recurring subscription via Stripe Checkout.
         return $request->user()->newSubscription('default', $stripePriceId)
-            ->checkout($checkoutOptions);
+            ->checkout($checkoutOptions)
+            ->redirect();
     }
 
     /**
@@ -84,20 +85,14 @@ class BillingController extends Controller
     /**
      * Assign a free plan directly without Stripe.
      */
-    private function assignFreePlan(\App\Models\User $user, Plan $plan): void
+    private function assignFreePlan(User $user, Plan $plan): void
     {
-        // Cancel any existing active subscription.
-        $user->subscriptions()
-            ->where('status', 'active')
-            ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+        foreach ($user->subscriptions as $subscription) {
+            if ($subscription->valid()) {
+                $subscription->cancelNow();
+            }
+        }
 
-        Subscription::create([
-            'user_id' => $user->id,
-            'plan_id' => $plan->id,
-            'type' => 'free',
-            'status' => 'active',
-            'starts_at' => now(),
-            'ends_at' => null,
-        ]);
+        $user->update(['plan_id' => $plan->id]);
     }
 }

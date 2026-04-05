@@ -38,7 +38,7 @@ class TemplateController extends Controller
             'name' => 'required|string|max:255',
             'project_type_id' => 'nullable|exists:project_types,id',
             'type' => 'required|in:hour,fixed',
-            'currency' => 'required|in:' . implode(',', array_column(Currency::cases(), 'value')),
+            'currency' => 'required|in:'.implode(',', array_column(Currency::cases(), 'value')),
         ]);
 
         $projectTypeId = $request->project_type_id;
@@ -51,7 +51,6 @@ class TemplateController extends Controller
         }
 
         $template = Template::create([
-            'user_id' => Auth::id(),
             'name' => $request->name,
             'project_type_id' => $projectTypeId,
             'type' => $request->type,
@@ -165,6 +164,6 @@ class TemplateController extends Controller
             $estimation->addons()->attach($addon->id);
         }
 
-        return redirect()->route('estimations.builder', $estimation)->with('message', 'Estimation créée depuis le gabarit « ' . $template->name . ' ».');
+        return redirect()->route('estimations.builder', $estimation)->with('message', 'Estimation créée depuis le gabarit « '.$template->name.' ».');
     }
 }

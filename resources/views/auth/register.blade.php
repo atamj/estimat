@@ -2,6 +2,11 @@
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
+        @if($selectedPlanSlug && $selectedBillingCycle)
+            <input type="hidden" name="plan" value="{{ $selectedPlanSlug }}" />
+            <input type="hidden" name="billing_cycle" value="{{ $selectedBillingCycle }}" />
+        @endif
+
         <!-- Name -->
         <div>
             <x-input-label for="name" :value="__('Name')" />

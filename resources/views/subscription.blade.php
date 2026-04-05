@@ -16,4 +16,21 @@
     @endif
 
     <livewire:subscription-manager />
+
+    @if(session('pending_checkout'))
+        @php
+            /** @var array{plan_id: int, billing_cycle: string} $pending */
+            $pending = session('pending_checkout');
+        @endphp
+        <div class="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-white/95 dark:bg-gray-900/95 px-6 text-center">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-200">Redirection vers le paiement sécurisé Stripe…</p>
+        </div>
+        <form id="pending-checkout-form" method="POST" action="{{ route('billing.checkout', ['plan' => $pending['plan_id']]) }}" class="hidden">
+            @csrf
+            <input type="hidden" name="billing_cycle" value="{{ $pending['billing_cycle'] }}" />
+        </form>
+        <script>
+            document.getElementById('pending-checkout-form').submit();
+        </script>
+    @endif
 </x-layout>

@@ -60,7 +60,7 @@ class DashboardController extends Controller
             ])
             ->sortByDesc(fn ($item) => $item['count']);
 
-        $subscription = $user->activeSubscription()->with('plan')->first();
+        $subscription = $user->activeSubscription;
         $plan = $subscription?->plan;
 
         $customBlocksCount = Block::query()->count();

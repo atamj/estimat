@@ -3,15 +3,13 @@
 namespace App\Listeners;
 
 use App\Models\Plan;
-use App\Models\Subscription;
 use App\Models\User;
-use Carbon\Carbon;
 use Laravel\Cashier\Events\WebhookReceived;
 
 class StripeEventListener
 {
     /**
-     * Handle received Stripe webhook events.
+     * Handle received Stripe webhook events (complements Cashier’s own handling).
      */
     public function handle(WebhookReceived $event): void
     {
@@ -19,22 +17,25 @@ class StripeEventListener
 
         match ($payload['type'] ?? null) {
             'checkout.session.completed' => $this->handleCheckoutSessionCompleted($payload),
-            'customer.subscription.updated' => $this->handleCustomerSubscriptionUpdated($payload),
             'customer.subscription.deleted' => $this->handleCustomerSubscriptionDeleted($payload),
             default => null,
         };
     }
 
     /**
-     * Handle checkout.session.completed — creates or updates our custom Subscription.
+     * One-time “lifetime” Checkout does not create a Cashier subscription row; store plan on the user.
      */
     private function handleCheckoutSessionCompleted(array $payload): void
     {
         $session = $payload['data']['object'];
         $metadata = $session['metadata'] ?? [];
+        $billingCycle = $metadata['billing_cycle'] ?? 'monthly';
+
+        if ($billingCycle !== 'lifetime') {
+            return;
+        }
 
         $planId = $metadata['plan_id'] ?? null;
-        $billingCycle = $metadata['billing_cycle'] ?? 'monthly';
         $customerId = $session['customer'] ?? null;
 
         if (! $planId || ! $customerId) {
@@ -48,75 +49,17 @@ class StripeEventListener
             return;
         }
 
-        // Cancel any existing active subscription.
-        $user->subscriptions()
-            ->where('status', 'active')
-            ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+        foreach ($user->subscriptions as $subscription) {
+            if ($subscription->valid()) {
+                $subscription->cancelNow();
+            }
+        }
 
-        $endsAt = match ($billingCycle) {
-            'yearly' => now()->addYear(),
-            'lifetime' => null,
-            default => now()->addMonth(),
-        };
-
-        Subscription::create([
-            'user_id' => $user->id,
-            'plan_id' => $plan->id,
-            'type' => $billingCycle,
-            'status' => 'active',
-            'starts_at' => now(),
-            'ends_at' => $endsAt,
-        ]);
+        $user->update(['plan_id' => $plan->id]);
     }
 
     /**
-     * Handle customer.subscription.updated — sync renewal date.
-     */
-    private function handleCustomerSubscriptionUpdated(array $payload): void
-    {
-        $stripeSubscription = $payload['data']['object'];
-        $customerId = $stripeSubscription['customer'] ?? null;
-        $currentPeriodEnd = $stripeSubscription['current_period_end'] ?? null;
-        $status = $stripeSubscription['status'] ?? null;
-
-        if (! $customerId) {
-            return;
-        }
-
-        $user = User::where('stripe_id', $customerId)->first();
-
-        if (! $user) {
-            return;
-        }
-
-        $subscription = $user->subscriptions()
-            ->where('status', 'active')
-            ->whereNotNull('ends_at')
-            ->latest()
-            ->first();
-
-        if (! $subscription) {
-            return;
-        }
-
-        $updates = [];
-
-        if ($currentPeriodEnd) {
-            $updates['ends_at'] = Carbon::createFromTimestamp($currentPeriodEnd);
-        }
-
-        if ($status === 'canceled') {
-            $updates['status'] = 'cancelled';
-            $updates['cancelled_at'] = now();
-        }
-
-        if (! empty($updates)) {
-            $subscription->update($updates);
-        }
-    }
-
-    /**
-     * Handle customer.subscription.deleted — cancel our custom Subscription.
+     * When the Stripe subscription ends, fall back to the free plan for app entitlements.
      */
     private function handleCustomerSubscriptionDeleted(array $payload): void
     {
@@ -133,11 +76,13 @@ class StripeEventListener
             return;
         }
 
-        $user->subscriptions()
-            ->where('status', 'active')
-            ->update([
-                'status' => 'cancelled',
-                'cancelled_at' => now(),
-            ]);
+        $user->refresh();
+
+        if (! $user->subscription('default')?->valid()) {
+            $freePlan = Plan::where('slug', 'free')->first();
+            if ($freePlan) {
+                $user->update(['plan_id' => $freePlan->id]);
+            }
+        }
     }
 }

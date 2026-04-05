@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Listeners\StripeEventListener;
 use App\Models\Plan;
-use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Events\WebhookReceived;
@@ -63,17 +62,14 @@ class BillingTest extends TestCase
         ]);
 
         $response->assertRedirect(route('subscription'));
-        $this->assertDatabaseHas('subscriptions', [
-            'user_id' => $user->id,
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
             'plan_id' => $freePlan->id,
-            'type' => 'free',
-            'status' => 'active',
         ]);
     }
 
-    public function test_checkout_free_plan_cancels_existing_subscription(): void
+    public function test_checkout_free_plan_replaces_existing_plan_id(): void
     {
-        $user = User::factory()->create();
         $existingPlan = $this->createPlan(['slug' => 'existing', 'price_monthly' => 9]);
         $freePlan = $this->createPlan([
             'name' => 'Gratuit',
@@ -82,28 +78,15 @@ class BillingTest extends TestCase
             'price_yearly' => 0,
         ]);
 
-        Subscription::create([
-            'user_id' => $user->id,
-            'plan_id' => $existingPlan->id,
-            'type' => 'monthly',
-            'status' => 'active',
-            'starts_at' => now()->subMonth(),
-        ]);
+        $user = User::factory()->create(['plan_id' => $existingPlan->id]);
 
         $this->actingAs($user)->post(route('billing.checkout', $freePlan), [
             'billing_cycle' => 'monthly',
         ]);
 
-        $this->assertDatabaseHas('subscriptions', [
-            'user_id' => $user->id,
-            'plan_id' => $existingPlan->id,
-            'status' => 'cancelled',
-        ]);
-
-        $this->assertDatabaseHas('subscriptions', [
-            'user_id' => $user->id,
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
             'plan_id' => $freePlan->id,
-            'status' => 'active',
         ]);
     }
 
@@ -112,7 +95,6 @@ class BillingTest extends TestCase
         $user = User::factory()->create();
         $plan = $this->createPlan([
             'price_monthly' => 19.00,
-            // No stripe_monthly_price_id set.
         ]);
 
         $response = $this->actingAs($user)->post(route('billing.checkout', $plan), [
@@ -140,7 +122,7 @@ class BillingTest extends TestCase
         $this->get(route('billing.portal'))->assertRedirect(route('login'));
     }
 
-    public function test_stripe_webhook_checkout_session_completed_creates_subscription(): void
+    public function test_stripe_webhook_checkout_session_completed_sets_lifetime_plan_for_user(): void
     {
         $user = User::factory()->create(['stripe_id' => 'cus_test123']);
         $plan = $this->createPlan();
@@ -153,31 +135,31 @@ class BillingTest extends TestCase
                     'customer' => 'cus_test123',
                     'metadata' => [
                         'plan_id' => $plan->id,
-                        'billing_cycle' => 'monthly',
+                        'billing_cycle' => 'lifetime',
                     ],
                 ],
             ],
         ]));
 
-        $this->assertDatabaseHas('subscriptions', [
-            'user_id' => $user->id,
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
             'plan_id' => $plan->id,
-            'type' => 'monthly',
-            'status' => 'active',
         ]);
     }
 
-    public function test_stripe_webhook_subscription_deleted_cancels_subscription(): void
+    public function test_stripe_webhook_subscription_deleted_assigns_free_plan(): void
     {
-        $user = User::factory()->create(['stripe_id' => 'cus_cancel123']);
-        $plan = $this->createPlan();
+        $freePlan = $this->createPlan([
+            'name' => 'Free',
+            'slug' => 'free',
+            'price_monthly' => 0,
+            'price_yearly' => 0,
+        ]);
+        $paidPlan = $this->createPlan(['slug' => 'paid', 'price_monthly' => 9]);
 
-        Subscription::create([
-            'user_id' => $user->id,
-            'plan_id' => $plan->id,
-            'type' => 'monthly',
-            'status' => 'active',
-            'starts_at' => now(),
+        $user = User::factory()->create([
+            'stripe_id' => 'cus_cancel123',
+            'plan_id' => $paidPlan->id,
         ]);
 
         $listener = new StripeEventListener;
@@ -190,9 +172,9 @@ class BillingTest extends TestCase
             ],
         ]));
 
-        $this->assertDatabaseHas('subscriptions', [
-            'user_id' => $user->id,
-            'status' => 'cancelled',
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'plan_id' => $freePlan->id,
         ]);
     }
 
@@ -200,7 +182,6 @@ class BillingTest extends TestCase
     {
         $listener = new StripeEventListener;
 
-        // Should not throw any exception.
         $listener->handle(new WebhookReceived([
             'type' => 'checkout.session.completed',
             'data' => [
@@ -208,7 +189,7 @@ class BillingTest extends TestCase
                     'customer' => 'cus_nonexistent',
                     'metadata' => [
                         'plan_id' => 999,
-                        'billing_cycle' => 'monthly',
+                        'billing_cycle' => 'lifetime',
                     ],
                 ],
             ],

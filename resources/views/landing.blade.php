@@ -189,7 +189,7 @@
                                     @endif
                                 </li>
                             </ul>
-                            <a href="{{ route('register') }}" class="w-full py-3 px-6 rounded-xl border-2 border-slate-100 text-center font-bold text-slate-600 hover:bg-slate-50 transition">
+                            <a href="{{ route('register', ['plan' => 'free', 'billing_cycle' => 'monthly']) }}" class="w-full py-3 px-6 rounded-xl border-2 border-slate-100 text-center font-bold text-slate-600 hover:bg-slate-50 transition">
                                 Essayer
                             </a>
                         </div>
@@ -221,7 +221,11 @@
                                     @endif
                                 </ul>
                             </div>
-                            <a href="{{ route('register') }}" class="w-full py-4 px-6 rounded-2xl bg-blue-600 text-center font-bold text-white hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                            <a
+                                x-bind:href="`{{ url('/register') }}?plan=pro&billing_cycle=${billing === 'monthly' ? 'monthly' : 'yearly'}`"
+                                href="{{ route('register', ['plan' => 'pro', 'billing_cycle' => 'monthly']) }}"
+                                class="w-full py-4 px-6 rounded-2xl bg-blue-600 text-center font-bold text-white hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+                            >
                                 Prendre le plan Pro
                             </a>
                         </div>
@@ -254,7 +258,7 @@
                                     <x-fas-check class="w-4 h-4 text-yellow-500" /> Badge "Pionnier" profil
                                 </li>
                             </ul>
-                            <a href="{{ route('register') }}" class="w-full py-3 px-6 rounded-xl bg-white text-center font-bold text-slate-900 hover:bg-slate-100 transition shadow-lg">
+                            <a href="{{ route('register', ['plan' => 'pioneer', 'billing_cycle' => 'lifetime']) }}" class="w-full py-3 px-6 rounded-xl bg-white text-center font-bold text-slate-900 hover:bg-slate-100 transition shadow-lg">
                                 Devenir Pionnier
                             </a>
                         </div>

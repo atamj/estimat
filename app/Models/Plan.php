@@ -20,8 +20,41 @@ class Plan extends Model
         'is_active' => 'boolean',
     ];
 
-    public function subscriptions()
+    public function users()
     {
-        return $this->hasMany(Subscription::class);
+        return $this->hasMany(User::class, 'plan_id');
+    }
+
+    public static function findByStripePriceId(?string $priceId): ?self
+    {
+        if (! $priceId) {
+            return null;
+        }
+
+        return static::query()
+            ->where(function ($query) use ($priceId): void {
+                $query->where('stripe_monthly_price_id', $priceId)
+                    ->orWhere('stripe_yearly_price_id', $priceId)
+                    ->orWhere('stripe_lifetime_price_id', $priceId);
+            })
+            ->first();
+    }
+
+    /**
+     * @return 'monthly'|'yearly'|'lifetime'
+     */
+    public static function billingCycleTypeFromPrice(self $plan, string $priceId): string
+    {
+        if ($plan->stripe_monthly_price_id === $priceId) {
+            return 'monthly';
+        }
+        if ($plan->stripe_yearly_price_id === $priceId) {
+            return 'yearly';
+        }
+        if ($plan->stripe_lifetime_price_id === $priceId) {
+            return 'lifetime';
+        }
+
+        return 'monthly';
     }
 }

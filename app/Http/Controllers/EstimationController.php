@@ -40,7 +40,7 @@ class EstimationController extends Controller
             'project_name' => 'nullable|string|max:255',
             'project_type_id' => 'nullable|exists:project_types,id',
             'type' => 'required|in:hour,fixed',
-            'currency' => 'required|in:' . implode(',', array_column(Currency::cases(), 'value')),
+            'currency' => 'required|in:'.implode(',', array_column(Currency::cases(), 'value')),
             'template_id' => 'nullable|exists:templates,id',
         ]);
 
@@ -69,7 +69,6 @@ class EstimationController extends Controller
         }
 
         $estimation = Estimation::create([
-            'user_id' => $user?->id,
             'client_name' => $request->client_name,
             'project_name' => $request->project_name,
             'project_type_id' => $projectTypeId,
@@ -115,7 +114,7 @@ class EstimationController extends Controller
             $estimation->pages()->create(['name' => 'Site Footer', 'type' => 'footer', 'order' => 99, 'quantity' => 1]);
         }
 
-        $message = $template ? 'Estimation créée depuis le gabarit « ' . $template->name . ' ».' : null;
+        $message = $template ? 'Estimation créée depuis le gabarit « '.$template->name.' ».' : null;
 
         return redirect()->route('estimations.builder', $estimation)->with('message', $message);
     }
@@ -185,14 +184,11 @@ class EstimationController extends Controller
 
     public function saveAsTemplate(Request $request, Estimation $estimation): RedirectResponse
     {
-        $user = Auth::user();
-
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
 
         $template = Template::create([
-            'user_id' => $user->id,
             'name' => $request->name,
             'project_type_id' => $estimation->project_type_id,
             'type' => $estimation->type,
@@ -232,7 +228,7 @@ class EstimationController extends Controller
         }
 
         return redirect()->route('estimations.builder', $estimation)
-            ->with('message', 'Gabarit « ' . $template->name . ' » créé avec succès.');
+            ->with('message', 'Gabarit « '.$template->name.' » créé avec succès.');
     }
 
     public function exportPdf(Estimation $estimation)

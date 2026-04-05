@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\User\CreateDemoWorkspaceData;
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -18,9 +19,15 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        $plan = $request->query('plan');
+        $billingCycle = $request->query('billing_cycle');
+
+        return view('auth.register', [
+            'selectedPlanSlug' => is_string($plan) && $plan !== '' ? $plan : null,
+            'selectedBillingCycle' => is_string($billingCycle) && $billingCycle !== '' ? $billingCycle : null,
+        ]);
     }
 
     /**
@@ -30,29 +37,22 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'plan' => ['nullable', 'string', 'max:255'],
+            'billing_cycle' => ['nullable', 'in:monthly,yearly,lifetime'],
         ]);
+
+        $freePlan = Plan::where('slug', 'free')->first();
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'plan_id' => $freePlan?->id,
         ]);
-
-        // Assigner le plan gratuit par défaut
-        $freePlan = \App\Models\Plan::where('slug', 'free')->first();
-        if ($freePlan) {
-            \App\Models\Subscription::create([
-                'user_id' => $user->id,
-                'plan_id' => $freePlan->id,
-                'type' => 'monthly',
-                'status' => 'active',
-                'starts_at' => now(),
-            ]);
-        }
 
         CreateDemoWorkspaceData::run($user);
 
@@ -60,6 +60,52 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('estimations.index', absolute: false));
+        $redirectTo = route('estimations.index', absolute: false);
+
+        $planSlug = $validated['plan'] ?? null;
+        $billingCycle = $validated['billing_cycle'] ?? null;
+
+        if (is_string($planSlug) && is_string($billingCycle)) {
+            $selectedPlan = Plan::query()
+                ->where('slug', $planSlug)
+                ->where('is_active', true)
+                ->first();
+
+            if ($selectedPlan && $this->checkoutIntentIsValid($selectedPlan, $billingCycle)) {
+                $request->session()->flash('pending_checkout', [
+                    'plan_id' => $selectedPlan->id,
+                    'billing_cycle' => $billingCycle,
+                ]);
+                $redirectTo = route('subscription', absolute: false);
+            }
+        }
+
+        return redirect($redirectTo);
+    }
+
+    /**
+     * Whether the user should be sent to Stripe Checkout after registration.
+     */
+    private function checkoutIntentIsValid(Plan $plan, string $billingCycle): bool
+    {
+        if ($plan->slug === 'free') {
+            return false;
+        }
+
+        if ($plan->slug === 'pioneer' && $billingCycle !== 'lifetime') {
+            return false;
+        }
+
+        if ($plan->slug === 'pro' && $billingCycle === 'lifetime') {
+            return false;
+        }
+
+        $stripePriceId = match ($billingCycle) {
+            'monthly' => $plan->stripe_monthly_price_id,
+            'yearly' => $plan->stripe_yearly_price_id,
+            'lifetime' => $plan->stripe_lifetime_price_id,
+        };
+
+        return $stripePriceId !== null && $stripePriceId !== '';
     }
 }

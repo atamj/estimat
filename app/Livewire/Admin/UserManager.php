@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Plan;
-use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -45,28 +44,21 @@ class UserManager extends Component
     {
         $user = User::findOrFail($this->editingUserId);
 
-        // Sécurité : Ne pas se retirer son propre rôle admin par erreur ici si on veut,
-        // mais l'admin doit pouvoir gérer les autres.
-
         $user->update([
             'is_admin' => $this->role_admin,
         ]);
 
-        // Gestion manuelle de l'abonnement si changé
         if ($this->selectedPlanId) {
             $currentPlan = $user->activePlan;
             if (! $currentPlan || $currentPlan->id != $this->selectedPlanId) {
-                // On annule l'ancien et on crée un nouveau
-                $user->subscriptions()->where('status', 'active')->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+                foreach ($user->subscriptions as $subscription) {
+                    if ($subscription->valid()) {
+                        $subscription->cancelNow();
+                    }
+                }
 
                 $plan = Plan::find($this->selectedPlanId);
-                Subscription::create([
-                    'user_id' => $user->id,
-                    'plan_id' => $plan->id,
-                    'type' => $plan->slug === 'pioneer' ? 'lifetime' : 'monthly',
-                    'status' => 'active',
-                    'starts_at' => now(),
-                ]);
+                $user->update(['plan_id' => $plan->id]);
             }
         }
 

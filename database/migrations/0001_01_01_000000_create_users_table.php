@@ -20,6 +20,7 @@ return new class extends Migration
             $table->rememberToken();
             $table->boolean('is_admin')->default(false);
             $table->string('default_currency', 3)->default('EUR');
+            $table->unsignedBigInteger('plan_id')->nullable();
             $table->string('stripe_id')->nullable()->index();
             $table->string('pm_type')->nullable();
             $table->string('pm_last_four', 4)->nullable();
