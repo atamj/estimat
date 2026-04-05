@@ -1,0 +1,23 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Block;
+use App\Models\Plan;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class DatabaseSeederTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_database_seeder_completes_successfully(): void
+    {
+        $this->artisan('db:seed')->assertExitCode(0);
+
+        $this->assertGreaterThan(0, Block::query()->count());
+        $this->assertSame(3, Plan::query()->count());
+        $this->assertNotNull(User::query()->where('email', 'jael@example.com')->first());
+    }
+}
