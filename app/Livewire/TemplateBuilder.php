@@ -277,7 +277,11 @@ class TemplateBuilder extends Component
         ]);
 
         $user = auth()->user();
-        $data = array_merge($this->newBlock, ['user_id' => $user?->id]);
+        if (! $user) {
+            return;
+        }
+
+        $data = array_merge($this->newBlock, ['user_id' => $user->id]);
         $block = Block::create($data);
 
         if ($this->selectedPageIdForNewBlock) {
@@ -330,7 +334,7 @@ class TemplateBuilder extends Component
     public function render(): \Illuminate\View\View
     {
         $blocksQuery = Block::query();
-        $addonsQuery = Option::query();
+        $addonsQuery = Option::query()->where('user_id', $this->template->user_id);
 
         if ($this->project_type_id) {
             $blocksQuery->where(function ($q) {

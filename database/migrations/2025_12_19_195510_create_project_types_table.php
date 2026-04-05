@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('icon')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_default')->default(false);
-            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

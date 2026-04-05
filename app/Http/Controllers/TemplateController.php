@@ -41,10 +41,15 @@ class TemplateController extends Controller
         ]);
 
         $projectTypeId = $request->project_type_id;
-        $config = TranslationConfig::where('project_type_id', $projectTypeId)->first();
+        $userId = auth()->id();
+        $config = TranslationConfig::where('user_id', $userId)
+            ->where('project_type_id', $projectTypeId)
+            ->first();
 
         if (! $config && $projectTypeId) {
-            $config = TranslationConfig::whereNull('project_type_id')->first();
+            $config = TranslationConfig::where('user_id', $userId)
+                ->whereNull('project_type_id')
+                ->first();
         }
 
         $template = Template::create([

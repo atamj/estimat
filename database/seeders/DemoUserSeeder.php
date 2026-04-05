@@ -2,35 +2,28 @@
 
 namespace Database\Seeders;
 
-use App\Models\Block;
-use App\Models\Option;
-use App\Models\ProjectType;
-use App\Models\Setup;
-use App\Models\TranslationConfig;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DemoUserSeeder extends Seeder
 {
+    public const JAEL_EMAIL = 'jael@example.com';
+
+    public const JAEL_NAME = 'Jael';
+
+    public const JAEL_PASSWORD = 'password';
+
+    public const JAEL_IS_ADMIN = false;
+
     public function run(): void
     {
-        $user = User::factory()->create([
-            'name' => 'Jael',
-            'email' => 'jael@example.com',
-            'is_admin' => false,
-        ]);
-
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@estimat.pro',
-            'password' => bcrypt('password'),
-            'is_admin' => true,
-        ]);
-
-        Block::query()->update(['user_id' => $user->id]);
-        ProjectType::query()->update(['user_id' => $user->id]);
-        Setup::query()->update(['user_id' => $user->id]);
-        Option::query()->update(['user_id' => $user->id]);
-        TranslationConfig::query()->update(['user_id' => $user->id]);
+        User::firstOrCreate(
+            ['email' => self::JAEL_EMAIL],
+            [
+                'name' => self::JAEL_NAME,
+                'password' => self::JAEL_PASSWORD,
+                'is_admin' => self::JAEL_IS_ADMIN,
+            ],
+        );
     }
 }

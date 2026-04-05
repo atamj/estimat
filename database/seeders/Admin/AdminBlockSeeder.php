@@ -5,12 +5,20 @@ namespace Database\Seeders;
 use App\Models\Block;
 use App\Models\BlockPriceSet;
 use App\Models\ProjectType;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
-class BlockSeeder extends Seeder
+class AdminBlockSeeder extends Seeder
 {
+    private int $catalogOwnerUserId;
+
     public function run(): void
     {
+        $this->catalogOwnerUserId = User::query()
+            ->where('email', AdminUserSeeder::ADMIN_EMAIL)
+            ->firstOrFail()
+            ->id;
+
         $wp = ProjectType::where('name', 'WordPress')->firstOrFail();
         $bedrock = ProjectType::where('name', 'Bedrock')->firstOrFail();
         $laravel = ProjectType::where('name', 'Laravel')->firstOrFail();
@@ -146,6 +154,7 @@ class BlockSeeder extends Seeder
         float $priceContentManagement,
     ): void {
         $block = Block::create([
+            'user_id' => $this->catalogOwnerUserId,
             'name' => $name,
             'description' => $description,
             'project_type_id' => $projectTypeId,

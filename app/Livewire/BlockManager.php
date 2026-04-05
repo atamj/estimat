@@ -71,7 +71,11 @@ class BlockManager extends Component
         $this->validate();
 
         $user = auth()->user();
-        $subscription = $user?->activeSubscription;
+        if (! $user) {
+            return;
+        }
+
+        $subscription = $user->activeSubscription;
         $plan = $subscription?->plan;
 
         if (! $this->editingBlockId && $plan && $plan->max_blocks !== -1) {
@@ -84,7 +88,7 @@ class BlockManager extends Component
         }
 
         $data = [
-            'user_id' => $user?->id,
+            'user_id' => $user->id,
             'name' => $this->name,
             'description' => $this->description,
             'project_type_id' => $this->project_type_id ?: null,

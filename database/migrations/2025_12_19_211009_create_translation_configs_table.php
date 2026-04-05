@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('translation_configs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->decimal('default_fixed_price', 10, 2)->default(0);
             $table->decimal('default_fixed_hours', 10, 2)->default(0);
             $table->decimal('default_percentage', 5, 2)->default(0);

@@ -19,4 +19,9 @@ class TranslationConfig extends Model
     {
         return $this->belongsTo(ProjectType::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

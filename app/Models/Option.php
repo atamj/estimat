@@ -21,6 +21,11 @@ class Option extends Model
         return $this->belongsTo(ProjectType::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function estimations()
     {
         return $this->belongsToMany(Estimation::class, 'estimation_addon', 'option_id', 'estimation_id')

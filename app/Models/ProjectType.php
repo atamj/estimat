@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProjectType extends Model
 {
@@ -52,6 +53,11 @@ class ProjectType extends Model
             'fas-paint-brush' => 'Frontend',
             'fas-database' => 'Database',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function blocks()

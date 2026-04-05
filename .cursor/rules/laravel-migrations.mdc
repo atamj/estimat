@@ -1,0 +1,21 @@
+---
+description: Laravel migration file policy — new files only for new tables
+globs: database/migrations/**/*.php
+alwaysApply: false
+---
+
+# Database migrations
+
+## New migration files
+
+- **Create a new migration file only when adding a new table** (including pivot tables and other new schema objects that warrant their own migration file in this project).
+- **Do not** add a separate migration whose sole purpose is to change an already-migrated table (e.g. add/change/drop columns, indexes, or foreign keys on an existing table).
+
+## Editing existing tables
+
+- **Edit the original `create_*_table` migration** for that table when you need to change its definition.
+- Keep the full column definition accurate when modifying a column (Laravel will not merge partial definitions across files if only the original exists).
+
+## Rationale
+
+This project prefers a single source of truth per table in its initial migration rather than follow-up alter migrations for the same table.

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('project_type_id')->nullable()->constrained('project_types')->nullOnDelete();
             $table->string('type');
             $table->float('fixed_hours')->default(0);
-            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

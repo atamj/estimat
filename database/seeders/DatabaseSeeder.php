@@ -11,15 +11,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->seedAdminData();
+
         $this->call([
-            ProjectTypeSeeder::class,
-            SetupSeeder::class,
-            BlockSeeder::class,
-            OptionSeeder::class,
-            TranslationConfigSeeder::class,
             DemoUserSeeder::class,
             PlanSeeder::class,
             SubscriptionSeeder::class,
+        ]);
+    }
+
+    public function seedAdminData(): void
+    {
+        $this->call([
+            AdminUserSeeder::class,
+            AdminProjectTypeSeeder::class,
+            AdminSetupSeeder::class,
+            AdminBlockSeeder::class,
+            AdminOptionSeeder::class,
+            AdminTranslationConfigSeeder::class,
         ]);
     }
 }

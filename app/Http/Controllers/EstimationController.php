@@ -44,13 +44,19 @@ class EstimationController extends Controller
         ]);
 
         $projectTypeId = $request->project_type_id;
-        $config = TranslationConfig::where('project_type_id', $projectTypeId)->first();
-
-        if (! $config && $projectTypeId) {
-            $config = TranslationConfig::whereNull('project_type_id')->first();
-        }
-
         $user = $request->user();
+        $config = null;
+        if ($user) {
+            $config = TranslationConfig::where('user_id', $user->id)
+                ->where('project_type_id', $projectTypeId)
+                ->first();
+
+            if (! $config && $projectTypeId) {
+                $config = TranslationConfig::where('user_id', $user->id)
+                    ->whereNull('project_type_id')
+                    ->first();
+            }
+        }
         if ($user) {
             $subscription = $user->activeSubscription;
             $plan = $subscription?->plan;

@@ -4,15 +4,19 @@ namespace Database\Seeders;
 
 use App\Models\Option;
 use App\Models\ProjectType;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
-class OptionSeeder extends Seeder
+class AdminOptionSeeder extends Seeder
 {
     public function run(): void
     {
+        $userId = User::query()->where('email', AdminUserSeeder::ADMIN_EMAIL)->firstOrFail()->id;
+
         $wp = ProjectType::where('name', 'WordPress')->firstOrFail();
 
         Option::create([
+            'user_id' => $userId,
             'name' => 'Optimisation SEO avancée',
             'type' => 'fixed_hours',
             'value' => 5,
@@ -21,6 +25,7 @@ class OptionSeeder extends Seeder
         ]);
 
         Option::create([
+            'user_id' => $userId,
             'name' => 'Formation administrateur',
             'type' => 'fixed_price',
             'value' => 450,
@@ -29,6 +34,7 @@ class OptionSeeder extends Seeder
         ]);
 
         Option::create([
+            'user_id' => $userId,
             'name' => 'Maintenance annuelle',
             'type' => 'percentage',
             'value' => 15,

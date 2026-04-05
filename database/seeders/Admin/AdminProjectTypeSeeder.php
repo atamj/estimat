@@ -3,13 +3,17 @@
 namespace Database\Seeders;
 
 use App\Models\ProjectType;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
-class ProjectTypeSeeder extends Seeder
+class AdminProjectTypeSeeder extends Seeder
 {
     public function run(): void
     {
+        $userId = User::where('email', AdminUserSeeder::ADMIN_EMAIL)->firstOrFail()->id;
+
         ProjectType::create([
+            'user_id' => $userId,
             'name' => 'WordPress',
             'icon' => 'fab-wordpress',
             'description' => 'Site sous CMS WordPress (Elementor, Gutenberg, etc.)',
@@ -17,6 +21,7 @@ class ProjectTypeSeeder extends Seeder
         ]);
 
         ProjectType::create([
+            'user_id' => $userId,
             'name' => 'Bedrock',
             'icon' => 'fab-wordpress',
             'description' => 'Site sous CMS WordPress avec le boilerplate (modèle) Bedrock qui permet de gérer WordPress avec Composer et Git et de façon plus sécurisé.',
@@ -24,6 +29,7 @@ class ProjectTypeSeeder extends Seeder
         ]);
 
         ProjectType::create([
+            'user_id' => $userId,
             'name' => 'Laravel',
             'icon' => 'fab-laravel',
             'description' => 'Application métier sur mesure performante',
@@ -31,6 +37,7 @@ class ProjectTypeSeeder extends Seeder
         ]);
 
         ProjectType::create([
+            'user_id' => $userId,
             'name' => 'PHP / Symfony',
             'icon' => 'fab-php',
             'description' => 'Développement spécifique PHP ou framework Symfony',

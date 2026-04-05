@@ -181,7 +181,12 @@ class TemplateTest extends TestCase
     {
         ['user' => $user, 'template' => $template] = $this->makeTemplateWithBlock();
 
-        $addon = Option::create(['name' => 'SEO', 'type' => 'fixed_price', 'value' => 500]);
+        $addon = Option::create([
+            'user_id' => $user->id,
+            'name' => 'SEO',
+            'type' => 'fixed_price',
+            'value' => 500,
+        ]);
         $template->addons()->attach($addon->id);
 
         $this->actingAs($user)->post(route('templates.create-estimation', $template));

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Block;
 use App\Models\Plan;
+use App\Models\Setup;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,5 +20,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertGreaterThan(0, Block::query()->count());
         $this->assertSame(3, Plan::query()->count());
         $this->assertNotNull(User::query()->where('email', 'jael@example.com')->first());
+        $this->assertGreaterThan(0, Setup::query()->count());
+        $this->assertSame(Setup::query()->count(), Setup::query()->whereNotNull('user_id')->count());
     }
 }

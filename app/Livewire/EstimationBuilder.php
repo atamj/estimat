@@ -193,9 +193,18 @@ class EstimationBuilder extends Component
 
     public function syncWithGlobalTranslationConfig($propertyName)
     {
-        $config = TranslationConfig::where('project_type_id', $this->project_type_id)->first();
+        $userId = $this->estimation->user_id;
+        if (! $userId) {
+            return;
+        }
+
+        $config = TranslationConfig::where('user_id', $userId)
+            ->where('project_type_id', $this->project_type_id)
+            ->first();
         if (! $config && ! $this->project_type_id) {
-            $config = TranslationConfig::whereNull('project_type_id')->first();
+            $config = TranslationConfig::where('user_id', $userId)
+                ->whereNull('project_type_id')
+                ->first();
         }
 
         if ($config) {
@@ -213,6 +222,7 @@ class EstimationBuilder extends Component
         } elseif ($this->project_type_id) {
             // Créer une config si elle n'existe pas pour ce type de projet
             TranslationConfig::create([
+                'user_id' => $userId,
                 'project_type_id' => $this->project_type_id,
                 'default_fixed_price' => $this->translation_fixed_price ?? 0,
                 'default_fixed_hours' => $this->translation_fixed_hours ?? 0,
@@ -223,9 +233,22 @@ class EstimationBuilder extends Component
 
     public function checkTranslationLock()
     {
-        $config = TranslationConfig::where('project_type_id', $this->project_type_id)->first();
+        $userId = $this->estimation->user_id;
+        if (! $userId) {
+            $this->isPriceLocked = false;
+            $this->isHoursLocked = false;
+            $this->isPercentageLocked = false;
+
+            return;
+        }
+
+        $config = TranslationConfig::where('user_id', $userId)
+            ->where('project_type_id', $this->project_type_id)
+            ->first();
         if (! $config) {
-            $config = TranslationConfig::whereNull('project_type_id')->first();
+            $config = TranslationConfig::where('user_id', $userId)
+                ->whereNull('project_type_id')
+                ->first();
         }
 
         if ($config) {
@@ -241,11 +264,20 @@ class EstimationBuilder extends Component
 
     public function updateTranslationDefaults()
     {
-        $config = TranslationConfig::where('project_type_id', $this->project_type_id)->first();
+        $userId = $this->estimation->user_id;
+        if (! $userId) {
+            return;
+        }
+
+        $config = TranslationConfig::where('user_id', $userId)
+            ->where('project_type_id', $this->project_type_id)
+            ->first();
 
         // Si pas de config spécifique, on prend la config générique (project_type_id is null)
         if (! $config) {
-            $config = TranslationConfig::whereNull('project_type_id')->first();
+            $config = TranslationConfig::where('user_id', $userId)
+                ->whereNull('project_type_id')
+                ->first();
         }
 
         if ($config) {
@@ -420,7 +452,11 @@ class EstimationBuilder extends Component
         ]);
 
         $user = auth()->user();
-        $subscription = $user?->activeSubscription;
+        if (! $user) {
+            return;
+        }
+
+        $subscription = $user->activeSubscription;
         $plan = $subscription?->plan;
 
         if ($plan && $plan->max_blocks !== -1) {
@@ -432,7 +468,7 @@ class EstimationBuilder extends Component
             }
         }
 
-        $data = array_merge($this->newBlock, ['user_id' => $user?->id]);
+        $data = array_merge($this->newBlock, ['user_id' => $user->id]);
         $block = Block::create($data);
 
         if ($this->selectedPageIdForNewBlock) {
@@ -488,6 +524,13 @@ class EstimationBuilder extends Component
     {
         $blocksQuery = Block::query();
         $addonsQuery = Option::query();
+
+        $addonUserId = $this->estimation->user_id ?? auth()->id();
+        if ($addonUserId) {
+            $addonsQuery->where('user_id', $addonUserId);
+        } else {
+            $addonsQuery->whereRaw('1 = 0');
+        }
 
         if ($this->project_type_id) {
             $blocksQuery->where(function ($q) {
