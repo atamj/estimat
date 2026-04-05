@@ -32,7 +32,10 @@ class EstimationCalculator
         }
 
         // Determine the currency key for block price lookup
-        $currencyKey = $estimation->type === 'hour' ? 'HOUR' : ($estimation->currency ?? 'EUR');
+        // For fixed estimations with hourly_rate, fall back to HOUR price sets
+        $useHourFallback = $estimation->type === 'fixed' && $estimation->hourly_rate > 0;
+        $currencyKey = ($estimation->type === 'hour' || $useHourFallback) ? 'HOUR' : ($estimation->currency ?? 'EUR');
+        $hourlyRate = (float) ($estimation->hourly_rate ?? 0);
 
         // 2. Identify unique blocks for Programming + Integration
         $uniqueBlockIds = [];
@@ -55,8 +58,17 @@ class EstimationCalculator
         foreach ($uniqueBlockIds as $blockId) {
             $block = Block::with('priceSets')->find($blockId);
             $priceSet = $block->priceSetFor($currencyKey);
-            $totals['programming'] += (float) ($priceSet?->price_programming ?? 0);
-            $totals['integration'] += (float) ($priceSet?->price_integration ?? 0);
+
+            // Fallback to HOUR price sets if no matching currency price set
+            if ($priceSet === null && $estimation->type === 'fixed') {
+                $priceSet = $block->priceSetFor('HOUR');
+            }
+
+            $progValue = (float) ($priceSet?->price_programming ?? 0);
+            $integValue = (float) ($priceSet?->price_integration ?? 0);
+
+            $totals['programming'] += $useHourFallback ? $progValue * $hourlyRate : $progValue;
+            $totals['integration'] += $useHourFallback ? $integValue * $hourlyRate : $integValue;
         }
 
         // 3. Calculate Field Creation + Content Management for each instance
@@ -65,11 +77,22 @@ class EstimationCalculator
             $pageQty = (int) $instance->page_quantity;
 
             $priceSet = $instance->priceSetFor($currencyKey);
-            $field_creation = $priceSet?->price_field_creation ?? 0;
-            $content_management = $priceSet?->price_content_management ?? 0;
 
-            $totals['field_creation'] += (float) $field_creation * $qty;
-            $totals['content_management'] += (float) $content_management * $qty * $pageQty;
+            // Fallback to HOUR price sets if no matching currency price set
+            if ($priceSet === null && $estimation->type === 'fixed') {
+                $priceSet = $instance->priceSetFor('HOUR');
+            }
+
+            $field_creation = (float) ($priceSet?->price_field_creation ?? 0);
+            $content_management = (float) ($priceSet?->price_content_management ?? 0);
+
+            if ($useHourFallback) {
+                $field_creation *= $hourlyRate;
+                $content_management *= $hourlyRate;
+            }
+
+            $totals['field_creation'] += $field_creation * $qty;
+            $totals['content_management'] += $content_management * $qty * $pageQty;
         }
 
         // 4. Translation

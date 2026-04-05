@@ -11,11 +11,17 @@
                     <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Offre actuelle</span>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ $plan->name }}</h3>
                 </div>
-                <div class="text-right">
+                <div class="flex items-center gap-3">
                     @if($subscription->type === 'lifetime')
                         <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase">À vie</span>
                     @else
                         <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Actif</span>
+                    @endif
+
+                    @if($subscription->ends_at && $subscription->type !== 'lifetime')
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            Renouvellement le {{ $subscription->ends_at->format('d/m/Y') }}
+                        </span>
                     @endif
                 </div>
             </div>
@@ -79,6 +85,16 @@
                             <x-fas-check-circle class="w-4 h-4 text-green-500" /> Support par email
                         </li>
                     </ul>
+
+                    @if(auth()->user()->stripe_id)
+                        <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <a href="{{ route('billing.portal') }}"
+                               class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                                <x-fas-credit-card class="w-4 h-4" />
+                                Gérer ma facturation
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -90,8 +106,27 @@
         </div>
     @endif
 
-    <div class="mb-8">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Changer d'offre</h3>
+    <div class="mb-8" x-data="{ billingCycle: 'monthly' }">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Changer d'offre</h3>
+
+            <!-- Toggle mensuel / annuel -->
+            <div class="flex items-center gap-3 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <button type="button"
+                        @click="billingCycle = 'monthly'"
+                        :class="billingCycle === 'monthly' ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'"
+                        class="px-4 py-1.5 rounded-md text-sm font-medium transition">
+                    Mensuel
+                </button>
+                <button type="button"
+                        @click="billingCycle = 'yearly'"
+                        :class="billingCycle === 'yearly' ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'"
+                        class="px-4 py-1.5 rounded-md text-sm font-medium transition">
+                    Annuel <span class="text-xs text-green-600 font-bold">-20%</span>
+                </button>
+            </div>
+        </div>
+
         <div class="grid md:grid-cols-3 gap-6">
             @foreach($availablePlans as $p)
                 <div class="bg-white dark:bg-gray-800 rounded-xl border {{ $plan && $plan->id === $p->id ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900' : 'border-gray-200 dark:border-gray-700' }} p-6 flex flex-col">
@@ -99,26 +134,84 @@
                         <h4 class="font-bold text-gray-900 dark:text-gray-100">{{ $p->name }}</h4>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ $p->description }}</p>
                     </div>
+
                     <div class="mb-6">
                         @if($p->price_lifetime)
-                            <span class="text-2xl font-bold">{{ $p->price_lifetime }}€</span>
-                            <span class="text-xs text-gray-500">une fois</span>
+                            <div x-show="billingCycle !== 'yearly'">
+                                <span class="text-2xl font-bold">{{ number_format($p->price_lifetime, 0) }}€</span>
+                                <span class="text-xs text-gray-500">une fois</span>
+                            </div>
+                            <div x-show="billingCycle === 'yearly'">
+                                <span class="text-2xl font-bold">{{ number_format($p->price_yearly, 0) }}€</span>
+                                <span class="text-xs text-gray-500">/an</span>
+                            </div>
                         @elseif($p->price_monthly == 0)
                             <span class="text-2xl font-bold">Gratuit</span>
                         @else
-                            <span class="text-2xl font-bold">{{ $p->price_monthly }}€</span>
-                            <span class="text-xs text-gray-500">/mois</span>
+                            <div x-show="billingCycle === 'monthly'">
+                                <span class="text-2xl font-bold">{{ number_format($p->price_monthly, 0) }}€</span>
+                                <span class="text-xs text-gray-500">/mois</span>
+                            </div>
+                            <div x-show="billingCycle === 'yearly'">
+                                <span class="text-2xl font-bold">{{ number_format($p->price_yearly, 0) }}€</span>
+                                <span class="text-xs text-gray-500">/an</span>
+                            </div>
                         @endif
                     </div>
 
                     @if($plan && $plan->id === $p->id)
-                        <button disabled class="w-full py-2 px-4 rounded-lg bg-gray-100 text-gray-500 font-bold text-sm cursor-not-allowed">
+                        <button disabled class="mt-auto w-full py-2 px-4 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-sm cursor-not-allowed">
                             Plan actuel
                         </button>
                     @else
-                        <button class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition">
-                            Choisir ce plan
-                        </button>
+                        @if($p->price_monthly == 0)
+                            <form method="POST" action="{{ route('billing.checkout', $p) }}" class="mt-auto">
+                                @csrf
+                                <input type="hidden" name="billing_cycle" value="monthly">
+                                <button type="submit"
+                                        class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition">
+                                    Choisir ce plan
+                                </button>
+                            </form>
+                        @elseif($p->price_lifetime)
+                            <div class="mt-auto space-y-2">
+                                <form method="POST" action="{{ route('billing.checkout', $p) }}" x-show="billingCycle !== 'yearly'">
+                                    @csrf
+                                    <input type="hidden" name="billing_cycle" value="lifetime">
+                                    <button type="submit"
+                                            class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition">
+                                        Acheter à vie
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('billing.checkout', $p) }}" x-show="billingCycle === 'yearly'">
+                                    @csrf
+                                    <input type="hidden" name="billing_cycle" value="yearly">
+                                    <button type="submit"
+                                            class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition">
+                                        S'abonner à l'année
+                                    </button>
+                                </form>
+                            </div>
+                        @else
+                            <div class="mt-auto space-y-2">
+                                <form method="POST" action="{{ route('billing.checkout', $p) }}" x-show="billingCycle === 'monthly'">
+                                    @csrf
+                                    <input type="hidden" name="billing_cycle" value="monthly">
+                                    <button type="submit"
+                                            class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition">
+                                        S'abonner au mois
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('billing.checkout', $p) }}" x-show="billingCycle === 'yearly'">
+                                    @csrf
+                                    <input type="hidden" name="billing_cycle" value="yearly">
+                                    <button type="submit"
+                                            class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition">
+                                        S'abonner à l'année
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
                     @endif
                 </div>
             @endforeach

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BlockController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimationController;
@@ -41,6 +42,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/subscription', function () {
+        return view('subscription');
+    })->name('subscription');
+
+    Route::post('/billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::get('/billing/success', [BillingController::class, 'success'])->name('billing.success');
+    Route::get('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
 });
 
 require __DIR__.'/auth.php';

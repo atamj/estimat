@@ -91,12 +91,17 @@
                         <label class="block text-[10px] uppercase tracking-wider font-black text-gray-500 mb-1">Total ligne</label>
                         <div class="text-lg font-bold text-blue-600">
                             @php
-                                $blockCurrencyKey = $type === 'hour' ? 'HOUR' : ($estimation->currency ?? 'EUR');
-                                $blockUnit = $type === 'hour' ? 'h' : $currencySymbol;
                                 $block->load('priceSets');
+                                $useHourFallback = $type === 'fixed' && $hourly_rate > 0;
+                                $blockCurrencyKey = ($type === 'hour' || $useHourFallback) ? 'HOUR' : ($estimation->currency ?? 'EUR');
                                 $blockPs = $block->priceSetFor($blockCurrencyKey);
-                                $sub = ($blockPs?->price_field_creation ?? 0) + ($blockPs?->price_content_management ?? 0);
+                                // Fallback HOUR pour fixed sans taux horaire
+                                $blockPsFallback = ($blockPs === null && $type === 'fixed') ? $block->priceSetFor('HOUR') : null;
+                                $effectivePs = $blockPs ?? $blockPsFallback;
+                                $sub = ($effectivePs?->price_field_creation ?? 0) + ($effectivePs?->price_content_management ?? 0);
+                                if ($useHourFallback) { $sub *= (float) $hourly_rate; }
                                 $lineTotal = $sub * $block->pivot->quantity;
+                                $blockUnit = ($type === 'hour' || ($blockPsFallback && !$useHourFallback)) ? 'h' : $currencySymbol;
                             @endphp
                             {{ number_format($lineTotal, 2) }}{{ $blockUnit }}
                         </div>
@@ -106,11 +111,15 @@
                 <div class="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                     <div>
                         <span class="font-bold">Détails Catalogue :</span>
-                        Prog: {{ $blockPs?->price_programming ?? 0 }}{{ $blockUnit }} |
-                        Inté: {{ $blockPs?->price_integration ?? 0 }}{{ $blockUnit }} |
-                        Champs: {{ $blockPs?->price_field_creation ?? 0 }}{{ $blockUnit }} |
-                        Contenu: {{ $blockPs?->price_content_management ?? 0 }}{{ $blockUnit }}
-                        @if(!$blockPs) <span class="text-amber-500 font-bold">⚠ Aucun tarif pour cette devise</span> @endif
+                        Prog: {{ $effectivePs?->price_programming ?? 0 }}{{ $blockUnit }} |
+                        Inté: {{ $effectivePs?->price_integration ?? 0 }}{{ $blockUnit }} |
+                        Champs: {{ $effectivePs?->price_field_creation ?? 0 }}{{ $blockUnit }} |
+                        Contenu: {{ $effectivePs?->price_content_management ?? 0 }}{{ $blockUnit }}
+                        @if($blockPsFallback && !$useHourFallback)
+                            <span class="text-amber-500 font-bold ml-1">⚠ Temps estimé — définissez un taux horaire pour le prix</span>
+                        @elseif(!$effectivePs)
+                            <span class="text-amber-500 font-bold ml-1">⚠ Aucun tarif pour cette devise</span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -141,6 +150,8 @@
                 @endforeach
                 @if(count($availableBlocks) === 0 && $blockSearch)
                     <option disabled>Aucun bloc trouvé pour "{{ $blockSearch }}"</option>
+                @elseif(count($availableBlocks) === 0)
+                    <option disabled>Aucun bloc disponible pour ce type de projet</option>
                 @endif
                 <hr>
                 <option value="new_block" class="font-bold text-green-600">✨ Ajouter un nouveau bloc...</option>

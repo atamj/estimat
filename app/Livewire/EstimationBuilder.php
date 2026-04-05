@@ -417,7 +417,6 @@ class EstimationBuilder extends Component
     {
         $this->validate([
             'newBlock.name' => 'required|min:3',
-            'newBlock.type_unit' => 'required|in:hour,fixed',
         ]);
 
         $user = auth()->user();
@@ -504,16 +503,11 @@ class EstimationBuilder extends Component
             $addonsQuery->whereNull('project_type_id');
         }
 
-        // Filtre selon le type d'estimation et le taux horaire
-        if (! $this->hourly_rate) {
-            $currencyKey = $this->type === 'hour' ? 'HOUR' : ($this->estimation->currency ?? 'EUR');
-            $blocksQuery->whereHas('priceSets', fn ($q) => $q->where('currency', $currencyKey));
-
-            if ($this->type === 'fixed') {
-                $addonsQuery->whereIn('type', ['fixed_price', 'percentage']);
-            } else {
-                $addonsQuery->whereIn('type', ['fixed_hours', 'percentage']);
-            }
+        // Filtre les add-ons selon le type d'estimation
+        if ($this->type === 'fixed') {
+            $addonsQuery->whereIn('type', ['fixed_price', 'percentage']);
+        } else {
+            $addonsQuery->whereIn('type', ['fixed_hours', 'percentage']);
         }
 
         if ($this->blockSearch) {
