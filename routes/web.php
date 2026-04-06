@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
     })->name('subscription');
 
     Route::post('/billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::post('/billing/resume', [BillingController::class, 'resume'])->name('billing.resume');
     Route::get('/billing/success', [BillingController::class, 'success'])->name('billing.success');
     Route::get('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
 });

@@ -76,7 +76,11 @@ class StripePlanSyncService
         $product = $stripe->products->create([
             'name' => $plan->name,
             'description' => $plan->description ?: null,
-            'metadata' => ['plan_slug' => $plan->slug],
+            'metadata' => [
+                'app' => config('app.name'),
+                'app_url' => config('app.url'),
+                'plan_slug' => $plan->slug,
+            ],
         ]);
 
         return $product->id;
@@ -85,6 +89,7 @@ class StripePlanSyncService
     /**
      * Crée un Price récurrent (monthly/yearly) ou réutilise l'existant.
      * Si le montant a changé, archive l'ancien et crée un nouveau.
+     * Les prix à 0€ sont autorisés (plan gratuit).
      */
     private function syncPrice(
         \Stripe\StripeClient $stripe,
@@ -95,7 +100,7 @@ class StripePlanSyncService
         string $interval,
         string $nickname
     ): ?string {
-        if ($newAmount <= 0) {
+        if ($newAmount < 0) {
             return null;
         }
 

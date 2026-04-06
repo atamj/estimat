@@ -10,6 +10,18 @@
                 <div>
                     <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Offre actuelle</span>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ $plan->name }}</h3>
+                    @if($paidPrice)
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                            <span class="font-semibold text-gray-900 dark:text-gray-100">{{ number_format($paidPrice['amount'], 0) }}€</span>
+                            @if($paidPrice['cycle'] === 'monthly')
+                                /mois
+                            @elseif($paidPrice['cycle'] === 'yearly')
+                                /an
+                            @else
+                                — paiement unique
+                            @endif
+                        </p>
+                    @endif
                 </div>
                 <div class="flex items-center gap-3">
                     @if($subscription->type === 'lifetime')
@@ -19,9 +31,23 @@
                     @endif
 
                     @if($subscription->ends_at && $subscription->type !== 'lifetime')
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                            Renouvellement le {{ $subscription->ends_at->format('d/m/Y') }}
-                        </span>
+                        @php $cashierSub = auth()->user()->subscription('default'); @endphp
+                        @if($cashierSub && $cashierSub->onGracePeriod())
+                            <span class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                Accès jusqu'au {{ $cashierSub->ends_at->format('d/m/Y') }}
+                            </span>
+                            <form method="POST" action="{{ route('billing.resume') }}">
+                                @csrf
+                                <button type="submit"
+                                        class="text-xs bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1 rounded-full transition">
+                                    Reprendre l'abonnement
+                                </button>
+                            </form>
+                        @else
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                Renouvellement le {{ $subscription->ends_at->format('d/m/Y') }}
+                            </span>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -138,22 +164,22 @@
                     <div class="mb-6">
                         @if($p->price_lifetime)
                             <div x-show="billingCycle !== 'yearly'">
-                                <span class="text-2xl font-bold">{{ number_format($p->price_lifetime, 0) }}€</span>
+                                <span class="text-2xl dark:text-white font-bold">{{ number_format($p->price_lifetime, 0) }}€</span>
                                 <span class="text-xs text-gray-500">une fois</span>
                             </div>
                             <div x-show="billingCycle === 'yearly'">
-                                <span class="text-2xl font-bold">{{ number_format($p->price_yearly, 0) }}€</span>
+                                <span class="text-2xl dark:text-white font-bold">{{ number_format($p->price_yearly, 0) }}€</span>
                                 <span class="text-xs text-gray-500">/an</span>
                             </div>
                         @elseif($p->price_monthly == 0)
-                            <span class="text-2xl font-bold">Gratuit</span>
+                            <span class="text-2xl dark:text-white font-bold">Gratuit</span>
                         @else
                             <div x-show="billingCycle === 'monthly'">
-                                <span class="text-2xl font-bold">{{ number_format($p->price_monthly, 0) }}€</span>
+                                <span class="text-2xl dark:text-white font-bold">{{ number_format($p->price_monthly, 0) }}€</span>
                                 <span class="text-xs text-gray-500">/mois</span>
                             </div>
                             <div x-show="billingCycle === 'yearly'">
-                                <span class="text-2xl font-bold">{{ number_format($p->price_yearly, 0) }}€</span>
+                                <span class="text-2xl dark:text-white font-bold">{{ number_format($p->price_yearly, 0) }}€</span>
                                 <span class="text-xs text-gray-500">/an</span>
                             </div>
                         @endif

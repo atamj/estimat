@@ -75,6 +75,22 @@ class BillingController extends Controller
     }
 
     /**
+     * Resume a canceled Stripe subscription still within its grace period.
+     */
+    public function resume(Request $request): RedirectResponse
+    {
+        $subscription = $request->user()->subscription('default');
+
+        if (! $subscription || ! $subscription->onGracePeriod()) {
+            return redirect()->route('subscription')->with('error', 'Aucun abonnement à reprendre.');
+        }
+
+        $subscription->resume();
+
+        return redirect()->route('subscription')->with('success', 'Votre abonnement a bien été repris.');
+    }
+
+    /**
      * Redirect the user to the Stripe billing portal.
      */
     public function portal(Request $request): RedirectResponse
@@ -83,13 +99,27 @@ class BillingController extends Controller
     }
 
     /**
-     * Assign a free plan directly without Stripe.
+     * Assign the free plan.
+     *
+     * If the free plan has a Stripe price configured, we swap or create the Stripe
+     * subscription so the user appears in Stripe and upgrades are handled cleanly.
+     * Otherwise we cancel any active paid subscription at period end and update locally.
      */
     private function assignFreePlan(User $user, Plan $plan): void
     {
-        foreach ($user->subscriptions as $subscription) {
-            if ($subscription->valid()) {
-                $subscription->cancelNow();
+        if ($plan->stripe_monthly_price_id) {
+            $existingSubscription = $user->subscription('default');
+
+            if ($existingSubscription && $existingSubscription->valid()) {
+                $existingSubscription->swap($plan->stripe_monthly_price_id);
+            } else {
+                $user->newSubscription('default', $plan->stripe_monthly_price_id)->create();
+            }
+        } else {
+            foreach ($user->subscriptions as $subscription) {
+                if ($subscription->active() && ! $subscription->onGracePeriod()) {
+                    $subscription->cancel();
+                }
             }
         }
 
